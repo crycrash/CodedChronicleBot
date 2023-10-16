@@ -127,7 +127,7 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
             } else if (message_text.equals("Посмотреть заметку") && !startWait1 && !startWait2) {
                 startWait2 = true;
                 sendText(chat_id, """
-                        хахахахах найди ошибку
+                        проверка изменений
                         Для поиска нужной Вам записи напишите в бот дату, которая вам нужна в таком формате:
                             
                         19.09.19""");
