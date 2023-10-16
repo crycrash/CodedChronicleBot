@@ -108,7 +108,7 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
     }
     @Override
     public void onUpdateReceived(Update update) {
-        System.out.println("Привет поля");
+        System.out.println("Привет Поля");
         if (mes(update)) {//если сообщение
             if (message_text.equals("/start") && !startWait1 && !startWait2) {
                 sendKeyboardMessage();
