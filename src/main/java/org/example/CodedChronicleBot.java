@@ -22,6 +22,9 @@ import org.telegram.telegrambots.meta.api.objects.InputFile;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.sql.SQLException;
+import java.sql.Connection;
+import java.sql.DriverManager;
 
 public class CodedChronicleBot extends TelegramLongPollingBot {
 
@@ -108,7 +111,6 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
     }
     @Override
     public void onUpdateReceived(Update update) {
-        System.out.println("Привет Поля");
         if (mes(update)) {//если сообщение
             if (message_text.equals("/start") && !startWait1 && !startWait2) {
                 sendKeyboardMessage();
@@ -119,6 +121,13 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
                         Мой день был хорошим, я провел его с замечательными людьми!
                             
                         Напишите день, за который хотите внести запись. Далее расскажите нам о своем дне❤️""");
+                try {
+                    SQLite hhf = new SQLite();
+                    SQLite.makeTable();
+                    hhf.makeNote(12345L, message_text);
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
             } else if (message_text.equals("Поменять оформление") && !startWait1 && !startWait2) {
                 try {
                     execute(variableOfTheme(chat_id));
@@ -283,3 +292,6 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
         }
     }
 }
+
+
+
