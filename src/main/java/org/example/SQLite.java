@@ -1,5 +1,6 @@
 package org.example;
 import java.sql.*;
+import java.time.LocalDate;
 
 public class SQLite {
 
@@ -23,19 +24,19 @@ public class SQLite {
                     + "date STRING"
                     + ")";
             statement.execute(createTableQuery);
-            //System.out.println("Таблица создана успешно!");
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
-    public void makeNote(long chat_id, String text) {
+    public void makeNote(long chat_id, String text, String date) {
         System.out.println(1);
-        String insertSql = "INSERT INTO messages (id, message) VALUES (?, ?)";
+        String insertSql = "INSERT INTO messages (id, message, date) VALUES (?, ?, ?)";
         try {
             PreparedStatement preparedStatementInsert = connection.prepareStatement(insertSql);
             preparedStatementInsert.setLong(1, chat_id);
             preparedStatementInsert.setString(2, text);
+            preparedStatementInsert.setString(3, date);
             preparedStatementInsert.executeUpdate();
 
             String selectSql = "SELECT * FROM messages";
@@ -47,10 +48,29 @@ public class SQLite {
                 int id = resultSet.getInt("id");
                 String message = resultSet.getString("message");
                 int ip = resultSet.getInt("ip");
-                System.out.println("ID: " + id + ", ip: " + ip + ", message: " + message);
+                String dat = resultSet.getString("date");
+                System.out.println("ID: " + id + ", ip: " + ip + ", message: " + message + "Date: " + dat);
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+    public String getMessage(long chat_id, String date) {
+        String selectSql = "SELECT message FROM mes WHERE id = ? AND date = ?";
+        try {
+            PreparedStatement preparedStatement = connection.prepareStatement(selectSql);
+            preparedStatement.setLong(1, chat_id);
+            preparedStatement.setString(2, date);
+            ResultSet resultSet = preparedStatement.executeQuery();
+
+            if (resultSet.next()) {
+                return resultSet.getString(1);  // вернуть найденное сообщение
+            } else {
+                return null;  // если сообщение не найдено, вернуть null
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 }
