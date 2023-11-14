@@ -55,18 +55,19 @@ public class SQLite {
             e.printStackTrace();
         }
     }
-    public String getMessage(long chat_id, String date) {
-        String selectSql = "SELECT message FROM mes WHERE id = ? AND date = ?";
+    public String getMessage(long chat_id,String date) {
+        String selectSql = "SELECT message FROM messages WHERE id = ? AND date = ?";
         try {
             PreparedStatement preparedStatement = connection.prepareStatement(selectSql);
             preparedStatement.setLong(1, chat_id);
             preparedStatement.setString(2, date);
             ResultSet resultSet = preparedStatement.executeQuery();
-
-            if (resultSet.next()) {
-                return resultSet.getString(1);  // вернуть найденное сообщение
+            boolean isResultSetNotEmpty = resultSet.next();
+            System.out.println(isResultSetNotEmpty);
+            if (isResultSetNotEmpty) {
+                return resultSet.getString("message"); // вернуть найденное сообщение
             } else {
-                return null;  // если сообщение не найдено, вернуть null
+                return null; // если сообщение не найдено, вернуть null
             }
         } catch (SQLException e) {
             e.printStackTrace();

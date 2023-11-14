@@ -40,6 +40,16 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
     String date;
     SQLite hhf;
 
+    public CodedChronicleBot() {
+        try {
+            this.hhf = new SQLite();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
+
 
     public static void main(String[] args) throws TelegramApiException {
         TelegramBotsApi botsApi = new TelegramBotsApi(DefaultBotSession.class);
@@ -111,7 +121,6 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
     public void onUpdateReceived(Update update) {
         if (mes(update)) {//если сообщение
             if (message_text.equals("/start") && session.getState().equals(BotState.START)) {
-
                 sendKeyboardMessage();
                 session.setState(BotState.NOTWAITING);
             }
@@ -128,23 +137,34 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
                     throw new RuntimeException(e);
                 }
             } else if (message_text.equals("Посмотреть заметку") && session.getState().equals(BotState.NOTWAITING)) {
-                session.setState(BotState.WAITING4);
                 sendText(chat_id, """
                         проверка изменений
                         Для поиска нужной Вам записи напишите в бот дату, которая вам нужна в таком формате:
                             
                         19.09.19""");
+                session.setState(BotState.WAITING4);
             } else if (session.getState().equals(BotState.WAITING1)) {
                 hhf.makeNote(chat_id, message_text, date);
                 sendText(chat_id, "Текст успешно записан!");
                 session.setState(BotState.NOTWAITING);
-            } else if (session.getState().equals(BotState.WAITING4)) {
-                //sendPhotoText(chat_id);
-                //sendText(chat_id, "Ваша запись!");
-                String str = hhf.getMessage(chat_id,date);
+            } else if (session.getState().equals(BotState.WAITING2)) {
                 date = message_text;
                 sendText(chat_id, "Введите текст");
                 session.setState(BotState.WAITING1);
+            } else if (session.getState().equals(BotState.WAITING4)) {
+                //sendPhotoText(chat_id);
+                sendText(chat_id, "Ваша запись!");
+                System.out.println(15);
+                String str = hhf.getMessage(chat_id,date);
+                System.out.println(hhf.getMessage(chat_id,date));
+                sendText(chat_id,str);
+                System.out.println(17);
+                if (str==null){
+                    System.out.println(1234567890);
+                }else {
+                    System.out.println(1);
+                }
+                session.setState(BotState.NOTWAITING);
             }
         } else if (update.hasCallbackQuery()) {//если инлайн кнопка
             call_data = update.getCallbackQuery().getData();
@@ -167,156 +187,158 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
                 sendText(chat_id, "Введите дату");
                 session.setState(BotState.WAITING2);
             }
-        }}
-
-        public void sendText (Long who, String what){
-            SendMessage sm = SendMessage.builder()
-                    .chatId(who.toString()) //
-                    .text(what).build();    //Message content
-            try {
-                execute(sm);                        //мы не любим это, можно пробовать отправлять еще раз
-            } catch (TelegramApiException e) {
-                throw new RuntimeException(e);      //Any error will be printed here
-            }
-        }
-
-        public SendMessage variableOfTheme (Long who)
-        {
-            SendMessage message = new SendMessage();
-            message.setChatId(String.valueOf(who));
-            message.setText("Выберите цветовую гамму");
-
-            InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
-
-            List<InlineKeyboardButton> rowsInLine = new ArrayList<>();
-
-            InlineKeyboardButton button1 = new InlineKeyboardButton();
-            button1.setText("\uD83E\uDD0D");
-            button1.setCallbackData("БЕЛОЕ");
-
-            InlineKeyboardButton button2 = new InlineKeyboardButton();
-            button2.setText("❤");
-            button2.setCallbackData("КРАСНОЕ");
-
-            InlineKeyboardButton button3 = new InlineKeyboardButton();
-            button3.setText("\uD83D\uDC99");
-            button3.setCallbackData("СИНЕЕ");
-
-            rowsInLine.add(button1);
-            rowsInLine.add(button2);
-            rowsInLine.add(button3);
-
-            markupInLine.setKeyboard(Collections.singletonList(rowsInLine));
-            message.setReplyMarkup(markupInLine);
-
-            return message;
-        }
-        public SendMessage yesOrNo (Long who)
-        {
-            SendMessage message = new SendMessage();
-            message.setChatId(String.valueOf(who));
-            message.setText("Хотите за сегодня?");
-
-            InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
-
-            List<InlineKeyboardButton> rowsInLine = new ArrayList<>();
-
-            InlineKeyboardButton button1 = new InlineKeyboardButton();
-            button1.setText("Да");
-            button1.setCallbackData("YES");
-
-            InlineKeyboardButton button2 = new InlineKeyboardButton();
-            button2.setText("Нет");
-            button2.setCallbackData("NO");
-
-            rowsInLine.add(button1);
-            rowsInLine.add(button2);
-
-            markupInLine.setKeyboard(Collections.singletonList(rowsInLine));
-            message.setReplyMarkup(markupInLine);
-
-            return message;
-        }
-        public void sendKeyboardMessage () {
-            SendMessage sm = new SendMessage();
-            sm.setChatId(String.valueOf(chat_id));
-            ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
-
-            KeyboardRow row1 = new KeyboardRow();
-            KeyboardRow row2 = new KeyboardRow();
-            KeyboardRow row3 = new KeyboardRow();
-
-            KeyboardButton button1 = new KeyboardButton("Создать заметку");
-            KeyboardButton button2 = new KeyboardButton("Посмотреть заметку");
-            KeyboardButton button3 = new KeyboardButton("Поменять оформление");
-
-            row1.add(button1);
-            row2.add(button2);
-            row3.add(button3);
-
-            List<KeyboardRow> keyboardRows = new ArrayList<>();
-            keyboardRows.add(row1);
-            keyboardRows.add(row2);
-            keyboardRows.add(row3);
-
-            keyboard.setKeyboard(keyboardRows);
-
-            sm.setText("Добро пожаловать в свой личный дневник!");
-
-            sm.setReplyMarkup(keyboard);
-
-            try {
-                execute(sm);
-            } catch (TelegramApiException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        private void sendImageWhite () {
-            path = "src/main/resources/2sh.png";
-        }
-        private void sendImageBlue () {
-            path = "src/main/resources/3sh.png";
-        }
-        private void sendImageRad () {
-            path = "src/main/resources/1sh.png";
-        }
-        private File addTextToImage (String text, File originalImage){
-            try {
-                BufferedImage image = ImageIO.read(originalImage);
-                Graphics2D g2d = image.createGraphics();
-
-                g2d.setFont(new Font("SansSerif", Font.BOLD, 40));
-                FontMetrics fontMetrics = g2d.getFontMetrics();
-
-                g2d.setColor(Color.black); //Цвет текста
-                g2d.drawString(text, 70, 40);
-
-                g2d.dispose();
-
-                File outputImage = new File("src/main/resources/output_" + originalImage.getName());
-                ImageIO.write(image, "jpg", outputImage);
-
-                return outputImage;
-            } catch (IOException e) {
-                throw new RuntimeException("Failed to process the image", e);
-            }
-        }
-        private void sendPhotoText (Long who){
-            SendMessage sm = new SendMessage();
-            sm.setChatId(String.valueOf(who));
-            SendMessage textMessage = finder();
-            File originalImage = new File(path);
-            File processedImage = addTextToImage(textMessage.getText(), originalImage);
-            InputFile inputFile = new InputFile(processedImage);
-            SendPhoto sendPhoto = new SendPhoto();
-            sendPhoto.setChatId(String.valueOf(who));
-            sendPhoto.setPhoto(inputFile);
-            try {
-                execute(sendPhoto);
-            } catch (TelegramApiException e) {
-                e.printStackTrace();
-            }
         }
     }
 
+    public void sendText (Long who, String what){
+        SendMessage sm = SendMessage.builder()
+                .chatId(who.toString()) //
+                .text(what).build();    //Message content
+        try {
+            execute(sm);                        //мы не любим это, можно пробовать отправлять еще раз
+        } catch (TelegramApiException e) {
+            throw new RuntimeException(e);      //Any error will be printed here
+        }
+    }
 
+    public SendMessage variableOfTheme (Long who)
+    {
+        SendMessage message = new SendMessage();
+        message.setChatId(String.valueOf(who));
+        message.setText("Выберите цветовую гамму");
+
+        InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
+
+        List<InlineKeyboardButton> rowsInLine = new ArrayList<>();
+
+        InlineKeyboardButton button1 = new InlineKeyboardButton();
+        button1.setText("\uD83E\uDD0D");
+        button1.setCallbackData("БЕЛОЕ");InlineKeyboardButton button2 = new InlineKeyboardButton();
+        button2.setText("❤");
+        button2.setCallbackData("КРАСНОЕ");
+
+        InlineKeyboardButton button3 = new InlineKeyboardButton();
+        button3.setText("\uD83D\uDC99");
+        button3.setCallbackData("СИНЕЕ");
+
+        rowsInLine.add(button1);
+        rowsInLine.add(button2);
+        rowsInLine.add(button3);
+
+        markupInLine.setKeyboard(Collections.singletonList(rowsInLine));
+        message.setReplyMarkup(markupInLine);
+
+        return message;
+    }
+    public SendMessage yesOrNo (Long who)
+    {
+        SendMessage message = new SendMessage();
+        message.setChatId(String.valueOf(who));
+        message.setText("Хотите за сегодня?");
+
+        InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
+
+        List<InlineKeyboardButton> rowsInLine = new ArrayList<>();
+
+        InlineKeyboardButton button1 = new InlineKeyboardButton();
+        button1.setText("Да");
+        button1.setCallbackData("YES");
+
+        InlineKeyboardButton button2 = new InlineKeyboardButton();
+        button2.setText("Нет");
+        button2.setCallbackData("NO");
+
+        rowsInLine.add(button1);
+        rowsInLine.add(button2);
+
+        markupInLine.setKeyboard(Collections.singletonList(rowsInLine));
+        message.setReplyMarkup(markupInLine);
+
+        return message;
+    }
+    public void sendKeyboardMessage () {
+        SendMessage sm = new SendMessage();
+        sm.setChatId(String.valueOf(chat_id));
+        ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
+
+        KeyboardRow row1 = new KeyboardRow();
+        KeyboardRow row2 = new KeyboardRow();
+        KeyboardRow row3 = new KeyboardRow();
+
+        KeyboardButton button1 = new KeyboardButton("Создать заметку");
+        KeyboardButton button2 = new KeyboardButton("Посмотреть заметку");
+        KeyboardButton button3 = new KeyboardButton("Поменять оформление");
+
+        row1.add(button1);
+        row2.add(button2);
+        row3.add(button3);
+
+        List<KeyboardRow> keyboardRows = new ArrayList<>();
+        keyboardRows.add(row1);
+        keyboardRows.add(row2);
+        keyboardRows.add(row3);
+
+        keyboard.setKeyboard(keyboardRows);
+
+        sm.setText("Добро пожаловать в свой личный дневник!");
+
+        sm.setReplyMarkup(keyboard);
+
+        try {
+            execute(sm);
+        } catch (TelegramApiException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    private void sendImageWhite () {
+        path = "src/main/resources/2sh.png";
+    }
+    private void sendImageBlue () {
+        path = "src/main/resources/3sh.png";
+    }
+    private void sendImageRad () {
+        path = "src/main/resources/1sh.png";
+    }
+    private File addTextToImage (String text, File originalImage){
+        try {
+            BufferedImage image = ImageIO.read(originalImage);
+            Graphics2D g2d = image.createGraphics();
+
+            g2d.setFont(new Font("SansSerif", Font.BOLD, 40));
+            FontMetrics fontMetrics = g2d.getFontMetrics();
+
+            g2d.setColor(Color.black); //Цвет текста
+            g2d.drawString(text, 70, 40);
+
+            g2d.dispose();
+
+            File outputImage = new File("src/main/resources/output_" + originalImage.getName());
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(image, "jpg", baos);
+            var data = baos.toByteArray();
+            return outputImage;
+
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to process the image", e);
+        }
+    }
+    private void sendPhotoText (Long who){
+        SendMessage sm = new SendMessage();
+        sm.setChatId(String.valueOf(who));
+        SendMessage textMessage = finder();
+        File originalImage = new File(path);
+        File processedImage = addTextToImage(textMessage.getText(), originalImage);
+        var data = new byte[0];
+
+        var inputFile =new InputFile(new ByteArrayInputStream(data),"");
+        //InputFile inputFile = new InputFile(processedImage);
+        SendPhoto sendPhoto = new SendPhoto();
+        sendPhoto.setChatId(String.valueOf(who));
+        sendPhoto.setPhoto(inputFile);
+        try {
+            execute(sendPhoto);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
+    }
+}
