@@ -290,6 +290,19 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
             throw new RuntimeException(e);
         }
     }
+    public InlineKeyboardMarkup genDatesInlineKeyboard(List<LocalDate> dates) {
+        InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
+
+        for (LocalDate date : dates) {
+            List<InlineKeyboardButton> rowInline = new ArrayList<>();
+            rowInline.add(new InlineKeyboardButton().setText(date.toString()).setCallbackData("DATE_" + date.toString()));
+            rowsInline.add(rowInline);
+        }
+
+        markupInline.setKeyboard(rowsInline);
+        return markupInline;
+    }
     private void sendImageWhite () {
         path = "src/main/resources/2sh.png";
     }

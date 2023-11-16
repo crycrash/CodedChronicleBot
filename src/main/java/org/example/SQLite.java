@@ -1,6 +1,8 @@
 package org.example;
 import java.sql.*;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 public class SQLite {
 
@@ -73,5 +75,20 @@ public class SQLite {
             e.printStackTrace();
         }
         return null;
+    }
+    public List<LocalDate> getDates(long chatId) {
+        String selectSql = "SELECT date FROM messages WHERE id = ?";
+        List<LocalDate> dates = new ArrayList<>();
+        try {
+            PreparedStatement preparedStatement = connection.prepareStatement(selectSql);
+            preparedStatement.setLong(1, chatId);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            while (resultSet.next()) {
+                dates.add(LocalDate.parse(resultSet.getString("date")));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return dates;
     }
 }
