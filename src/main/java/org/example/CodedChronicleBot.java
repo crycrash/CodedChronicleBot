@@ -38,6 +38,7 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
     String day;
 
     public static void main(String[] args) throws TelegramApiException {
+        SQLite.makeTable();
         TelegramBotsApi botsApi = new TelegramBotsApi(DefaultBotSession.class);
         botsApi.registerBot(new CodedChronicleBot());
     }
@@ -99,7 +100,6 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
-        SQLite.makeTable();
         SQLite hhf;
         try {
             hhf = new SQLite();
@@ -137,10 +137,23 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
                 hhf.makeNote(chat_id, message_text, date);
                 sendText(chat_id, "Текст успешно записан!");
                 session.setState(BotState.NOTWAITING);
-            } else if (session.getState().equals(BotState.WAITING2)) {
+            } else if (session.getState().equals(BotState.REWAITING)) {
+                hhf.rewrite(chat_id, message_text, date);
+                sendText(chat_id, "тест перезаписан");
+                session.setState(BotState.NOTWAITING);
+            }else if (session.getState().equals(BotState.WAITING2)) {
                 date = message_text;
-                sendText(chat_id, "Введите текст");
-                session.setState(BotState.WAITING1);
+                if (hhf.check(chat_id, date)) {
+                    try {
+                        execute(reWriteOrNot(chat_id));
+                    } catch (TelegramApiException e) {
+                        throw new RuntimeException(e);
+                    }
+                    session.setState(BotState.REWAITING);
+                } else {
+                    sendText(chat_id, "Введите текст");
+                    session.setState(BotState.WAITING1);
+                }
             }
         } else if (update.hasCallbackQuery()) {//если кнопка
             call_data = update.getCallbackQuery().getData();
@@ -155,14 +168,32 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
                 sendImageRad();
                 sendText(chat_id, "Выбрана красная тема!");
             } else if (call_data.equals("YES") && session.getState().equals(BotState.NOTWAITING)) {
+                //ЗАПИСЬ ЗА СЕГОДНЯ
                 LocalDate dat = LocalDate.now();
                 date = dat.toString();
-                sendText(chat_id, "Введите текст");
-                session.setState(BotState.WAITING1);
-            } else if (call_data.equals("NO")) {
+                if (hhf.check(chat_id, date)) {
+                    try {
+                        execute(reWriteOrNot(chat_id));
+                    } catch (TelegramApiException e) {
+                        throw new RuntimeException(e);
+                    }
+                    session.setState(BotState.REWAITING);
+                } else {
+                    System.out.println(hhf.check(chat_id, date));
+                    sendText(chat_id, "Введите текст");
+                    session.setState(BotState.WAITING1);
+                }
+            } else if (call_data.equals("YES1")) {
+                //String note=hhf.getMessage(chat_id, year, month, day);
+                sendText(chat_id,"отравьте новый текст");
+                //sendText(chat_id,note);
+                session.setState(BotState.REWAITING);
+            }else if (call_data.equals("NO1")){
+                    session.setState(BotState.NOTWAITING);
+            }else if (call_data.equals("NO")) {
                 sendText(chat_id, "Введите дату");
                 session.setState(BotState.WAITING2);
-            } else if (session.getState().equals(BotState.WAITING3)){
+            } else if (session.getState().equals(BotState.WAITING3)) {
                 year = call_data;
                 List<String> months0;
                 months0 = hhf.getMonths(chat_id, year);
@@ -172,7 +203,7 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
                     throw new RuntimeException(e);
                 }
                 session.setState(BotState.WAITING4);
-            } else if (session.getState().equals(BotState.WAITING4)){
+            }  else if (session.getState().equals(BotState.WAITING4)) {
                 month = call_data;
                 List<String> days0;
                 days0 = hhf.getDays(chat_id, year, month);
@@ -182,13 +213,14 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
                     throw new RuntimeException(e);
                 }
                 session.setState(BotState.WAITING_AFTER_DAY);
-            } else if (session.getState().equals(BotState.WAITING_AFTER_DAY)){
+            } else if (session.getState().equals(BotState.WAITING_AFTER_DAY)) {
                 day = call_data;
                 String s = hhf.getMessage(chat_id, year, month, day);
-                sendText(chat_id, s);
+                sendPhotoText(chat_id, s);
                 session.setState(BotState.NOTWAITING);
             }
-        }}
+        }
+    }
 
         public void sendText (Long who, String what){
             SendMessage sm = SendMessage.builder()
@@ -258,6 +290,33 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
 
             return message;
         }
+    public SendMessage reWriteOrNot (Long who)
+    {
+        SendMessage message = new SendMessage();
+        message.setChatId(String.valueOf(who));
+        message.setText("Запись за эту дату уже есть" +
+                "Хотите перезаписать заметку?");
+
+        InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
+
+        List<InlineKeyboardButton> rowsInLine = new ArrayList<>();
+
+        InlineKeyboardButton button1 = new InlineKeyboardButton();
+        button1.setText("Да");
+        button1.setCallbackData("YES1");
+
+        InlineKeyboardButton button2 = new InlineKeyboardButton();
+        button2.setText("Нет");
+        button2.setCallbackData("NO1");
+
+        rowsInLine.add(button1);
+        rowsInLine.add(button2);
+
+        markupInLine.setKeyboard(Collections.singletonList(rowsInLine));
+        message.setReplyMarkup(markupInLine);
+
+        return message;
+    }
 
     public SendMessage sendYears (Long who, List<String> years)
     {
@@ -387,12 +446,12 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
                 throw new RuntimeException("Failed to process the image", e);
             }
         }
-        private void sendPhotoText (Long who){
-            SendMessage sm = new SendMessage();
-            sm.setChatId(String.valueOf(who));
-            SendMessage textMessage = finder();
+        private void sendPhotoText (Long who,String str){
+            //SendMessage sm = new SendMessage();
+            //sm.setChatId(String.valueOf(who));
+            //SendMessage textMessage = finder();
             File originalImage = new File(path);
-            File processedImage = addTextToImage(textMessage.getText(), originalImage);
+            File processedImage = addTextToImage(str, originalImage);
             InputFile inputFile = new InputFile(processedImage);
             SendPhoto sendPhoto = new SendPhoto();
             sendPhoto.setChatId(String.valueOf(who));
