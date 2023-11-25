@@ -88,7 +88,7 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
         return fileOpener();
     }
 
-    private boolean mes(Update update) { //чтобы работали кнопки
+    private boolean mes(Update update) { //чтобы работали teкнопки
         if (update.hasMessage() && update.getMessage().hasText()) {
             chat_id = update.getMessage().getChatId();
             message_text = update.getMessage().getText();
@@ -134,26 +134,13 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
                 }
                 session.setState(BotState.WAITING3);
             } else if (session.getState().equals(BotState.WAITING1)) {
-                hhf.makeNote(chat_id, message_text, date);
+                hhf.makeNote(chat_id, message_text, year, month, day);
                 sendText(chat_id, "Текст успешно записан!");
                 session.setState(BotState.NOTWAITING);
             } else if (session.getState().equals(BotState.REWAITING)) {
-                hhf.rewrite(chat_id, message_text, date);
+                hhf.rewrite(chat_id, message_text, year, month, day);
                 sendText(chat_id, "тест перезаписан");
                 session.setState(BotState.NOTWAITING);
-            }else if (session.getState().equals(BotState.WAITING2)) {
-                date = message_text;
-                if (hhf.check(chat_id, date)) {
-                    try {
-                        execute(reWriteOrNot(chat_id));
-                    } catch (TelegramApiException e) {
-                        throw new RuntimeException(e);
-                    }
-                    session.setState(BotState.REWAITING);
-                } else {
-                    sendText(chat_id, "Введите текст");
-                    session.setState(BotState.WAITING1);
-                }
             }
         } else if (update.hasCallbackQuery()) {//если кнопка
             call_data = update.getCallbackQuery().getData();
@@ -171,7 +158,10 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
                 //ЗАПИСЬ ЗА СЕГОДНЯ
                 LocalDate dat = LocalDate.now();
                 date = dat.toString();
-                if (hhf.check(chat_id, date)) {
+                String year = date.substring(0, 4);
+                String month = date.substring(5, 7);
+                String day = date.substring(8, 10);
+                if (hhf.check(chat_id, year, month, day)) {
                     try {
                         execute(reWriteOrNot(chat_id));
                     } catch (TelegramApiException e) {
@@ -179,7 +169,6 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
                     }
                     session.setState(BotState.REWAITING);
                 } else {
-                    System.out.println(hhf.check(chat_id, date));
                     sendText(chat_id, "Введите текст");
                     session.setState(BotState.WAITING1);
                 }
@@ -191,8 +180,13 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
             }else if (call_data.equals("NO1")){
                     session.setState(BotState.NOTWAITING);
             }else if (call_data.equals("NO")) {
-                sendText(chat_id, "Введите дату");
-                session.setState(BotState.WAITING2);
+                try {
+                    execute(sendConstantYears(chat_id));
+                } catch (TelegramApiException e) {
+                    throw new RuntimeException(e);
+                }
+                session.setState(BotState.WAITING5);
+
             } else if (session.getState().equals(BotState.WAITING3)) {
                 year = call_data;
                 List<String> months0;
@@ -218,9 +212,31 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
                 String s = hhf.getMessage(chat_id, year, month, day);
                 sendPhotoText(chat_id, s);
                 session.setState(BotState.NOTWAITING);
+            } else if (session.getState().equals(BotState.WAITING5)) {
+                year = call_data;
+                try {
+                    execute(sendConstantMonths(chat_id));
+                } catch (TelegramApiException e) {
+                    throw new RuntimeException(e);
+                }
+                session.setState(BotState.WAITING6);
             }
-        }
-    }
+             else if (session.getState().equals(BotState.WAITING6)) {
+                month = call_data;
+                ArrayList<Integer> daysInMonth = hhf.makeNoteNo(chat_id, year, month);
+                try {
+                    execute(sendPreparedDays(chat_id, daysInMonth));
+                } catch (TelegramApiException e) {
+                    throw new RuntimeException(e);
+                }
+                session.setState(BotState.WAITING7);
+            } else if (session.getState().equals(BotState.WAITING7)) {
+                day = call_data;
+                sendText(chat_id, "Введите текст");
+                session.setState(BotState.WAITING1);
+            }
+        }}
+
 
         public void sendText (Long who, String what){
             SendMessage sm = SendMessage.builder()
@@ -232,6 +248,65 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
                 throw new RuntimeException(e);      //Any error will be printed here
             }
         }
+    public SendMessage sendPreparedDays (Long who, ArrayList<Integer> daysInMonth)
+    {
+        SendMessage message = new SendMessage();
+        message.setChatId(String.valueOf(who));
+        message.setText("Выберите день");
+
+        InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
+
+        List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
+        List<InlineKeyboardButton> rowInLine1 = new ArrayList<>();
+        List<InlineKeyboardButton> rowInLine2 = new ArrayList<>();
+        List<InlineKeyboardButton> rowInLine3 = new ArrayList<>();
+        List<InlineKeyboardButton> rowInLine4 = new ArrayList<>();
+        List<InlineKeyboardButton> rowInLine5 = new ArrayList<>();
+        int count = 0;
+        for (int s : daysInMonth) {
+            if(s != 0){
+                if (count <= 6){
+                    InlineKeyboardButton button = new InlineKeyboardButton();
+                    button.setText(String.valueOf(s));
+                    button.setCallbackData(String.valueOf(s));
+                    rowInLine1.add(button);
+                }
+                else if (count <= 12){
+                    InlineKeyboardButton button = new InlineKeyboardButton();
+                    button.setText(String.valueOf(s));
+                    button.setCallbackData(String.valueOf(s));
+                    rowInLine2.add(button);
+                }
+                else if (count <= 18){
+                    InlineKeyboardButton button = new InlineKeyboardButton();
+                    button.setText(String.valueOf(s));
+                    button.setCallbackData(String.valueOf(s));
+                    rowInLine3.add(button);
+                }
+                else if (count <= 24){
+                    InlineKeyboardButton button = new InlineKeyboardButton();
+                    button.setText(String.valueOf(s));
+                    button.setCallbackData(String.valueOf(s));
+                    rowInLine4.add(button);
+                }else{
+                    InlineKeyboardButton button = new InlineKeyboardButton();
+                    button.setText(String.valueOf(s));
+                    button.setCallbackData(String.valueOf(s));
+                    rowInLine5.add(button);
+                }
+                count++;}
+        }
+
+        rowsInLine.add(rowInLine1);
+        rowsInLine.add(rowInLine2);
+        rowsInLine.add(rowInLine3);
+        rowsInLine.add(rowInLine4);
+        rowsInLine.add(rowInLine5);
+        markupInLine.setKeyboard(rowsInLine);
+        message.setReplyMarkup(markupInLine);
+
+        return message;
+    }
 
         public SendMessage variableOfTheme (Long who)
         {
@@ -370,7 +445,7 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
 
         List<InlineKeyboardButton> rowsInLine = new ArrayList<>();
         for (String s : days) {
-            System.out.println("kkk");
+
             InlineKeyboardButton button = new InlineKeyboardButton();
             button.setText(s);
             button.setCallbackData(s);
@@ -416,6 +491,67 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
                 throw new RuntimeException(e);
             }
         }
+    public SendMessage sendConstantYears (Long who)
+    {
+        SendMessage message = new SendMessage();
+        message.setChatId(String.valueOf(who));
+        message.setText("Года");
+
+        InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
+
+        List<InlineKeyboardButton> rowsInLine = new ArrayList<>();
+
+        InlineKeyboardButton button1 = new InlineKeyboardButton();
+        button1.setText("2023");
+        button1.setCallbackData("2023");
+
+        InlineKeyboardButton button2 = new InlineKeyboardButton();
+        button2.setText("2022");
+        button2.setCallbackData("2022");
+
+        InlineKeyboardButton button3 = new InlineKeyboardButton();
+        button3.setText("2021");
+        button3.setCallbackData("2021");
+
+        rowsInLine.add(button1);
+        rowsInLine.add(button2);
+        rowsInLine.add(button3);
+
+        markupInLine.setKeyboard(Collections.singletonList(rowsInLine));
+        message.setReplyMarkup(markupInLine);
+
+        return message;
+    }
+    public SendMessage sendConstantMonths (Long who)
+    {
+        SendMessage message = new SendMessage();
+        message.setChatId(String.valueOf(who));
+        message.setText("Месяца");
+
+        InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
+
+        List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
+        List<InlineKeyboardButton> rowInLine1 = new ArrayList<>();
+        for(int i = 1;i<=6;i++){
+            InlineKeyboardButton button = new InlineKeyboardButton();
+            button.setText(String.valueOf(i));
+            button.setCallbackData(String.valueOf(i));
+            rowInLine1.add(button);
+        }
+        List<InlineKeyboardButton> rowInLine2 = new ArrayList<>();
+        for(int i = 7;i<=12;i++){
+            InlineKeyboardButton button = new InlineKeyboardButton();
+            button.setText(String.valueOf(i));
+            button.setCallbackData(String.valueOf(i));
+            rowInLine2.add(button);
+        }
+        rowsInLine.add(rowInLine1);
+        rowsInLine.add(rowInLine2);
+        markupInLine.setKeyboard(rowsInLine);
+        message.setReplyMarkup(markupInLine);
+
+        return message;
+    }
         private void sendImageWhite () {
             path = "src/main/resources/pic2.jpeg";
         }

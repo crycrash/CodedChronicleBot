@@ -30,11 +30,7 @@ public class SQLite {
             e.printStackTrace();
         }
     }
-    public boolean check(long chat_id, String date) {
-        String year = date.substring(0, 4);
-        String month = date.substring(5, 7);
-        String day = date.substring(8, 10);
-
+    public boolean check(long chat_id, String year, String month, String day) {
         // Проверяем, есть ли уже такая запись
         String checkSql = "SELECT COUNT(*) FROM reads WHERE id = ? AND year = ? AND month = ? AND day = ?";
 
@@ -58,10 +54,7 @@ public class SQLite {
         // Если метод не вернул значение раньше, значит произошла ошибка
         return false;
     }
-    public void makeNote(long chat_id, String text, String date) {
-        String year = date.substring(0, 4);
-        String month = date.substring(5, 7);
-        String day = date.substring(8, 10);
+    public void makeNote(long chat_id, String text, String year, String month, String day) {
 
         String insertSql = "INSERT INTO reads (id, message, year, month, day) VALUES (?, ?, ?, ?, ?)";
         try (PreparedStatement preparedStatementInsert = connection.prepareStatement(insertSql)) {
@@ -74,6 +67,28 @@ public class SQLite {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+    public ArrayList<Integer> makeNoteNo(long chat_id, String year, String month){
+        Calendar cal = new Calendar();
+        String selectSql = "SELECT day, month FROM reads WHERE id = ? AND year = ? AND month = ?";
+        try
+                (PreparedStatement preparedStatement = connection.prepareStatement(selectSql)){
+            preparedStatement.setLong(1, chat_id);
+            preparedStatement.setString(2, year);
+            preparedStatement.setString(3, month);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            String d;
+            while(resultSet.next()){
+                d = resultSet.getString("day");
+                System.out.println(cal.calendar.get(Integer.parseInt(month) - 1));
+                System.out.println(d);
+                cal.calendar.get(Integer.parseInt(month) - 1).set(Integer.parseInt(d) - 1, 0);
+            }
+            return cal.calendar.get(Integer.parseInt(month) - 1);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
     public String getMessage(long chat_id,String year, String month, String day) {
         String selectSql = "SELECT message FROM reads WHERE id = ? AND year = ? AND month = ? AND day = ?";
@@ -95,15 +110,11 @@ public class SQLite {
         }
         return null;
     }
-    public void rewrite(long chat_id, String text, String date) {
-        String year = date.substring(0, 4);
-        String month = date.substring(5, 7);
-        String day = date.substring(8, 10);
+    public void rewrite(long chat_id, String text, String year, String month, String day) {
         String sql = "UPDATE reads SET message = ? WHERE id = ? AND year = ? AND month = ? AND day = ?";
 
         try
             (PreparedStatement preparedStatement = connection.prepareStatement(sql)){
-            System.out.println(222222222);
             preparedStatement.setString(1, text);
             preparedStatement.setLong(2, chat_id);
             preparedStatement.setString(3, year);
