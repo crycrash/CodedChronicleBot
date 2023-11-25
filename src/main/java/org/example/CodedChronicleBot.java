@@ -30,7 +30,7 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
     BotSession session = new BotSession();
     String message_text;
     String call_data;
-    String path = "src/main/resources/1sh.png"; //дефолтная картинка
+    String path = "src/main/resources/pic1.jpeg"; //дефолтная картинка
     String date;
 
     String year;
@@ -417,35 +417,55 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
             }
         }
         private void sendImageWhite () {
-            path = "src/main/resources/2sh.png";
+            path = "src/main/resources/pic2.jpeg";
         }
         private void sendImageBlue () {
-            path = "src/main/resources/3sh.png";
+            path = "src/main/resources/pic1.jpeg";
         }
         private void sendImageRad () {
-            path = "src/main/resources/1sh.png";
+            path = "src/main/resources/pic3.jpeg";
         }
-        private File addTextToImage (String text, File originalImage){
-            try {
-                BufferedImage image = ImageIO.read(originalImage);
-                Graphics2D g2d = image.createGraphics();
+    private File addTextToImage(String text, File originalImage) {
+        try {
+            BufferedImage image = ImageIO.read(originalImage);
+            Graphics2D g2d = image.createGraphics();
 
-                g2d.setFont(new Font("SansSerif", Font.BOLD, 40));
+            g2d.setFont(new Font("SansSerif", Font.BOLD, 30));
+            g2d.setColor(Color.black); // Цвет текста
 
+            int maxWidth = 40; // Максимальная длина строки
+            float lineHeight = 31.999982f; // Высота текста
 
-                g2d.setColor(Color.black); //Цвет текста
-                g2d.drawString(text, 70, 40);
+            List<String> lines = wrapText(text, maxWidth); // Разделение текста на строки
 
-                g2d.dispose();
-
-                File outputImage = new File("src/main/resources/output_" + originalImage.getName());
-                ImageIO.write(image, "jpg", outputImage);
-
-                return outputImage;
-            } catch (IOException e) {
-                throw new RuntimeException("Failed to process the image", e);
+            int y = 149; // Начальная позиция по оси Y
+            for (String line : lines) {
+                g2d.drawString(line, 15, y); // Отображение строки
+                y += lineHeight; // Увеличение позиции по оси Y для следующей строки
             }
+
+            g2d.dispose();
+
+            File outputImage = new File("src/main/resources/output_" + originalImage.getName());
+            ImageIO.write(image, "jpg", outputImage);
+
+            return outputImage;
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to process the image", e);
         }
+    }
+
+    private List<String> wrapText(String text, int maxLength) {
+        List<String> lines = new ArrayList<>();
+        int length = text.length();
+
+        for (int i = 0; i < length; i += maxLength) {
+            int endIndex = Math.min(i + maxLength, length);
+            lines.add(text.substring(i, endIndex));
+        }
+
+        return lines;
+    }
         private void sendPhotoText (Long who,String str){
             //SendMessage sm = new SendMessage();
             //sm.setChatId(String.valueOf(who));
