@@ -68,6 +68,19 @@ public class SQLite {
             e.printStackTrace();
         }
     }
+    public void add (long chat_id, String text, String year, String month, String day) {
+        String insertSql = "UPDATE reads (id, message, year, month, day) VALUES (?, ?, ?, ?, ?)";
+        try (PreparedStatement preparedStatementInsert = connection.prepareStatement(insertSql)) {
+            preparedStatementInsert.setLong(1, chat_id);
+            preparedStatementInsert.setString(2, text);
+            preparedStatementInsert.setString(3, year);
+            preparedStatementInsert.setString(4, month);
+            preparedStatementInsert.setString(5, day);
+            preparedStatementInsert.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
     public ArrayList<Integer> makeNoteNo(long chat_id, String year, String month){
         Calendar cal = new Calendar();
         String selectSql = "SELECT day, month FROM reads WHERE id = ? AND year = ? AND month = ?";
@@ -131,6 +144,7 @@ public class SQLite {
     public List<String> getYears(long chatId) {
         String selectSql = "SELECT DISTINCT year FROM reads WHERE id = ?";
         List<String> years = new ArrayList<>();
+        System.out.println(2);
         try (PreparedStatement preparedStatement = connection.prepareStatement(selectSql)) {
             preparedStatement.setLong(1, chatId);
             try (ResultSet resultSet = preparedStatement.executeQuery()) {
@@ -138,6 +152,7 @@ public class SQLite {
                     years.add(resultSet.getString("year"));
                 }
             }
+            System.out.println(3);
         } catch (SQLException e) {
             e.printStackTrace();
         }
