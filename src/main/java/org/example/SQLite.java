@@ -144,7 +144,6 @@ public class SQLite {
     public List<String> getYears(long chatId) {
         String selectSql = "SELECT DISTINCT year FROM reads WHERE id = ?";
         List<String> years = new ArrayList<>();
-        System.out.println(2);
         try (PreparedStatement preparedStatement = connection.prepareStatement(selectSql)) {
             preparedStatement.setLong(1, chatId);
             try (ResultSet resultSet = preparedStatement.executeQuery()) {
@@ -152,7 +151,6 @@ public class SQLite {
                     years.add(resultSet.getString("year"));
                 }
             }
-            System.out.println(3);
         } catch (SQLException e) {
             e.printStackTrace();
         }
