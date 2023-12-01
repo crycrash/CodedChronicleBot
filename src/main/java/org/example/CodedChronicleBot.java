@@ -20,6 +20,8 @@ import java.io.*;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
 import java.time.LocalDate;
@@ -206,8 +208,6 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
                 }
                 session.setState(BotState.WAITING5);
             } else if (call_data.equals("NOPHOTO")) {
-                sendOverlappingImage(
-                        "src/main/resources/pic1.jpeg","C:\\Users\\Юзер\\Desktop\\tg_photos\\2023117.jpg");
                 sendText(chat_id, "Текст успешно записан");
                 session.setState(BotState.NOTWAITING);
             } else if (call_data.equals("YESPHOTO")) {
@@ -237,7 +237,7 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
                 if (f == 0) {
                     String s = hhf.getMessage(chat_id, year, month, day);
                     String date = day + "." + month + "." + year;
-                    sendPhotoText(chat_id, s, date);
+                    sendOverlappingImage(createPhotoText(chat_id, s, date),"C:\\Users\\Юзер\\Desktop\\tg_photos\\2023117.jpg");
                 }
                 System.out.println(f);
                 if (f == 1) {
@@ -706,23 +706,13 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
         return lines;
     }
 
-    private void sendPhotoText(Long who, String str, String date) {
-        //SendMessage sm = new SendMessage();
-        //sm.setChatId(String.valueOf(who));
-        //SendMessage textMessage = finder();
+    private File createPhotoText(Long who, String str, String date) {
         File originalImage = new File(path);
         File processedImage = addTextToImage(str, originalImage);
         File processedImage1 = addTextToImage1(date, processedImage);
-        InputFile inputFile = new InputFile(processedImage1);
-        SendPhoto sendPhoto = new SendPhoto();
-        sendPhoto.setChatId(String.valueOf(who));
-        sendPhoto.setPhoto(inputFile);
-        try {
-            execute(sendPhoto);
-        } catch (TelegramApiException e) {
-            e.printStackTrace();
-        }
+        return processedImage1;
     }
+
 
     private void savePhotoToFile(Update update, String day, String month, String year) {
         if (update.hasMessage() && update.getMessage().hasPhoto()) {
@@ -777,10 +767,10 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
         return execute(getFileRequest).getFilePath();
     }
 //ДОБАВЛЕНИЕ ОДНОЙ КАРТИНКИ НА ДРУГУЮ
-    private void sendOverlappingImage(String path1, String path2) {
+    private void sendOverlappingImage(File file1, String path2) {
         try {
             // Загрузка изображений
-            BufferedImage image1 = ImageIO.read(new File(path1));
+            BufferedImage image1 = ImageIO.read(file1);
             BufferedImage image2 = ImageIO.read(new File(path2));
 
             // Создание нового изображения с размерами первого изображения
