@@ -20,8 +20,6 @@ import java.io.*;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.util.*;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
 import java.time.LocalDate;
@@ -50,39 +48,14 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
         botsApi.registerBot(new CodedChronicleBot());
     }
 
-    private String fileOpener() {
+    private String fileOpener(String pa) {
         String text;
-        try (FileInputStream inputStream = new FileInputStream("src/main/resources/token.txt")) {
+        try (FileInputStream inputStream = new FileInputStream(pa)) {
             text = IOUtils.toString(inputStream);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
         return text;
-    }
-
-    public SendMessage finder() {
-        String str = message_text;
-        SendMessage message = new SendMessage();
-        try (FileInputStream inputStream = new FileInputStream("src/main/resources/file_" + chat_id + ".txt")) {
-            String text = IOUtils.toString(inputStream);
-            int number = text.indexOf(str);
-            StringBuilder fin = new StringBuilder();
-            while (number < text.length()) {
-                char c = text.charAt(number);
-                if (c != '%') {
-                    fin.append(c);
-                } else {
-                    break;
-                }
-                number++;
-            }
-            message.setChatId(String.valueOf(chat_id));
-            message.setText(String.valueOf(fin));
-        } catch (IOException ex) {
-
-            System.out.println(ex.getMessage());
-        }
-        return message;
     }
 
     @Override
@@ -92,7 +65,7 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
 
     @Override
     public String getBotToken() {
-        return fileOpener();
+        return fileOpener("src/main/resources/token.txt");
     }
 
     private boolean mes(Update update) { //чтобы работали teкнопки
@@ -133,15 +106,19 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
                 }
             } else if (message_text.equals("Посмотреть заметку") && session.getState().equals(BotState.NOTWAITING)) {
                 f = 0;
-                System.out.println(1);
                 List<String> years0;
                 years0 = hhf.getYears(chat_id);
-                try {
-                    execute(sendYears(chat_id, years0));
-                } catch (TelegramApiException e) {
-                    throw new RuntimeException(e);
+                if (!years0.isEmpty()){
+                    try {
+                        execute(sendYears(chat_id, years0));
+                    } catch (TelegramApiException e) {
+                        throw new RuntimeException(e);
+                    }
+                    session.setState(BotState.WAITING3);
+                }else{
+                    sendText(chat_id, "У вас еще нет записей!");
+                    session.setState(BotState.NOTWAITING);
                 }
-                session.setState(BotState.WAITING3);
             } else if (message_text.equals("Редактировать запись") && session.getState().equals(BotState.NOTWAITING)) {
                 f = 1;
                 List<String> years0;
@@ -152,6 +129,13 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
                     throw new RuntimeException(e);
                 }
                 session.setState(BotState.WAITING3);
+            }else if (message_text.equals("Удалить записи") && session.getState().equals(BotState.NOTWAITING)) {
+                try {
+                    execute(firstAsk(chat_id));
+                } catch (TelegramApiException e) {
+                    throw new RuntimeException(e);
+                }
+                session.setState(BotState.WAITING2);
             } else if (session.getState().equals(BotState.WAITING1)) {
                 //sendText(chat_id,"запись за эту дату уже есть, выберете другую");
                 hhf.makeNote(chat_id, message_text, year, month, day);
@@ -237,9 +221,8 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
                 if (f == 0) {
                     String s = hhf.getMessage(chat_id, year, month, day);
                     String date = day + "." + month + "." + year;
-                    sendOverlappingImage(createPhotoText(chat_id, s, date),"C:\\Users\\Юзер\\Desktop\\tg_photos\\2023117.jpg");
+                    sendPhotoText(chat_id, s, date);
                 }
-                System.out.println(f);
                 if (f == 1) {
                     try {
                         execute(editing(chat_id));
@@ -278,9 +261,28 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
             } else if (call_data.equals("add")) {
                 sendText(chat_id, "отправьте текст");
                 session.setState(BotState.WAITINGAFTERADD);
-            } else if (call_data.equals("edit")) {
-                sendText(chat_id, "неа");
+            } else if (session.getState().equals(BotState.WAITING2)) {
+                if (call_data.equals("900")){
+                    try {
+                        execute(secondAsk(chat_id));
+                    } catch (TelegramApiException e) {
+                        throw new RuntimeException(e);
+                    }
+                    session.setState(BotState.WAITING8);
+                }if (call_data.equals("100")){
+                    sendText(chat_id, "Ну и хорошо!");
+                    session.setState(BotState.NOTWAITING);
+                }
+            }else if (session.getState().equals(BotState.WAITING8)) {
+                if (call_data.equals("800")){
+                    hhf.deleteAll(chat_id);
+                    sendText(chat_id, "Все ваши заметки удалены!");
+                }if (call_data.equals("200")){
+                    sendText(chat_id, "Ну и хорошо!");
+                }
+                session.setState(BotState.NOTWAITING);
             }
+
         } else if (update.getMessage().hasPhoto()) {
             savePhotoToFile(update, day, month, year);
             sendText(chat_id, "заметка записана");
@@ -388,6 +390,43 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
         return message;
     }
 
+    public SendMessage firstAsk(Long who) {
+        SendMessage message = new SendMessage();
+        message.setChatId(String.valueOf(who));
+        message.setText("Вы уверены?");
+        InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
+        List<InlineKeyboardButton> rowsInLine = new ArrayList<>();
+        InlineKeyboardButton button1 = new InlineKeyboardButton();
+        button1.setText("Да");
+        button1.setCallbackData("900");
+        InlineKeyboardButton button2 = new InlineKeyboardButton();
+        button2.setText("Нет");
+        button2.setCallbackData("100");
+        rowsInLine.add(button1);
+        rowsInLine.add(button2);
+        markupInLine.setKeyboard(Collections.singletonList(rowsInLine));
+        message.setReplyMarkup(markupInLine);
+        return message;
+    }
+    public SendMessage secondAsk(Long who) {
+        SendMessage message = new SendMessage();
+        message.setChatId(String.valueOf(who));
+        message.setText("Вы точно уверены?");
+        InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
+        List<InlineKeyboardButton> rowsInLine = new ArrayList<>();
+        InlineKeyboardButton button1 = new InlineKeyboardButton();
+        button1.setText("Да");
+        button1.setCallbackData("800");
+        InlineKeyboardButton button2 = new InlineKeyboardButton();
+        button2.setText("Нет");
+        button2.setCallbackData("200");
+        rowsInLine.add(button1);
+        rowsInLine.add(button2);
+        markupInLine.setKeyboard(Collections.singletonList(rowsInLine));
+        message.setReplyMarkup(markupInLine);
+        return message;
+    }
+
     public SendMessage yesOrNo(Long who) {
         SendMessage message = new SendMessage();
         message.setChatId(String.valueOf(who));
@@ -457,13 +496,8 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
         button2.setText("добавить");
         button2.setCallbackData("add");
 
-        InlineKeyboardButton button3 = new InlineKeyboardButton();
-        button3.setText("редактировать");
-        button3.setCallbackData("edit");
-
         rowsInLine.add(button1);
         rowsInLine.add(button2);
-        rowsInLine.add(button3);
 
         markupInLine.setKeyboard(Collections.singletonList(rowsInLine));
         message.setReplyMarkup(markupInLine);
@@ -539,22 +573,26 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
         KeyboardRow row2 = new KeyboardRow();
         KeyboardRow row3 = new KeyboardRow();
         KeyboardRow row4 = new KeyboardRow();
+        KeyboardRow row5 = new KeyboardRow();
 
         KeyboardButton button1 = new KeyboardButton("Создать заметку");
         KeyboardButton button2 = new KeyboardButton("Посмотреть заметку");
         KeyboardButton button3 = new KeyboardButton("Поменять оформление");
         KeyboardButton button4 = new KeyboardButton("Редактировать запись");
+        KeyboardButton button5 = new KeyboardButton("Удалить записи");
 
         row1.add(button1);
         row2.add(button2);
         row3.add(button3);
         row4.add(button4);
+        row5.add(button5);
 
         List<KeyboardRow> keyboardRows = new ArrayList<>();
         keyboardRows.add(row1);
         keyboardRows.add(row2);
         keyboardRows.add(row3);
         keyboardRows.add(row4);
+        keyboardRows.add(row5);
 
         keyboard.setKeyboard(keyboardRows);
 
@@ -727,7 +765,7 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
                     String filePath = getFilePath(photo.getFileId());
 
                     // URL для загрузки фото из Telegram
-                    String t = fileOpener();
+                    String t = fileOpener("src/main/resources/token.txt");
                     String fileURL = "https://api.telegram.org/file/bot" + t + "/" + filePath;
 
                     // Открываем поток для чтения фото
@@ -766,7 +804,6 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
         GetFile getFileRequest = new GetFile(fileId);
         return execute(getFileRequest).getFilePath();
     }
-//ДОБАВЛЕНИЕ ОДНОЙ КАРТИНКИ НА ДРУГУЮ
     private void sendOverlappingImage(File file1, String path2) {
         try {
             // Загрузка изображений
@@ -808,6 +845,19 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
             e.printStackTrace();
         }
     }
+    private void sendPhotoText(Long who, String str, String date) {
+        File originalImage = new File(path);
+        File processedImage = addTextToImage(str, originalImage);
+        File processedImage1 = addTextToImage1(date, processedImage);
+        InputFile inputFile = new InputFile(processedImage1);
+        SendPhoto sendPhoto = new SendPhoto();
+        sendPhoto.setChatId(String.valueOf(who));
+        sendPhoto.setPhoto(inputFile);
+        try {
+            execute(sendPhoto);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }}
 }
 
 

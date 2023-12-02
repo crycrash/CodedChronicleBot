@@ -178,7 +178,6 @@ public class SQLite {
     public List<String> getDays(long chatId, String year1, String month1) {
         String selectSql = "SELECT DISTINCT day FROM reads WHERE id = ? AND year = ? AND month = ?";
         List<String> days = new ArrayList<>();
-        // Используем try-with-resources для автоматического закрытия ресурсов
         try (PreparedStatement preparedStatement = connection.prepareStatement(selectSql)) {
             preparedStatement.setLong(1, chatId);
             preparedStatement.setString(2, year1);
@@ -192,5 +191,14 @@ public class SQLite {
             e.printStackTrace(); // В реальных приложениях лучше использовать логгер
         }
         return days;
+    }
+    public void deleteAll(long chatId){
+        String deleteSql = "DELETE FROM reads WHERE id = ?";
+        try (PreparedStatement preparedStatement = connection.prepareStatement(deleteSql)) {
+            preparedStatement.setLong(1, chatId);
+            preparedStatement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 }
