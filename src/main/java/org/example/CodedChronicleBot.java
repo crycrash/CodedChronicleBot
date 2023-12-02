@@ -34,7 +34,7 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
     BotSession session = new BotSession();
     String message_text;
     String call_data;
-    String path = "src/main/resources/pic1.jpeg"; //дефолтная картинка
+    String path = "src/main/resources/newpic2.jpeg"; //дефолтная картинка
     String date;
 
     String year;
@@ -66,6 +66,9 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
     @Override
     public String getBotToken() {
         return fileOpener("src/main/resources/token.txt");
+    }
+    public String getPath() {
+        return fileOpener("src/main/resources/path.txt");
     }
 
     private boolean mes(Update update) { //чтобы работали teкнопки
@@ -221,7 +224,13 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
                 if (f == 0) {
                     String s = hhf.getMessage(chat_id, year, month, day);
                     String date = day + "." + month + "." + year;
-                    sendPhotoText(chat_id, s, date);
+                    String name = year + month + day + ".jpg";
+                    if(checkPhoto(getPath(),name)==1) {
+                        String photo=getPath()+"\\"+name;
+                        sendOverlappingImage(createPhotoText(chat_id, s, date),photo);
+                    }else{
+                        sendPhotoText(chat_id, s, date);
+                    }
                 }
                 if (f == 1) {
                     try {
@@ -284,6 +293,12 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
             }
 
         } else if (update.getMessage().hasPhoto()) {
+            if (day.substring(0, 1)=="0") {
+                day=day.substring(1, 2);
+            }
+            if (month.substring(0, 1)=="0") {
+                month=month.substring(1, 2);
+            }
             savePhotoToFile(update, day, month, year);
             sendText(chat_id, "заметка записана");
             session.setState(BotState.NOTWAITING);
@@ -669,15 +684,15 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
     }
 
     private void sendImageWhite() {
-        path = "src/main/resources/pic2.jpeg";
+        path = "src/main/resources/newpic2.jpeg";
     }
 
     private void sendImageBlue() {
-        path = "src/main/resources/pic1.jpeg";
+        path = "src/main/resources/newpic3.jpeg";
     }
 
     private void sendImageRad() {
-        path = "src/main/resources/pic3.jpeg";
+        path = "src/main/resources/newpic1.jpeg";
     }
 
     private File addTextToImage(String text, File originalImage) {
@@ -761,17 +776,15 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
                     .orElse(null);
             if (photo != null) {
                 try {
-                    // Получаем путь к фото
                     String filePath = getFilePath(photo.getFileId());
 
-                    // URL для загрузки фото из Telegram
                     String t = fileOpener("src/main/resources/token.txt");
                     String fileURL = "https://api.telegram.org/file/bot" + t + "/" + filePath;
 
                     // Открываем поток для чтения фото
                     InputStream inputStream = new URL(fileURL).openStream();
                     // Создаем файл для сохранения фото в указанной папке
-                    String savePath = "C:\\Users\\Юзер\\Desktop\\tg_photos";
+                    String savePath = getPath();
                     String name = year + month + day; // Пример значения переменной name
                     //String filePath = "/path/to/file"; // Пример значения переменной filePath
                     String fileName = name + filePath.substring(filePath.lastIndexOf('.'));
@@ -790,8 +803,6 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
                     inputStream.close();
                     outputStream.close();
 
-                    // Выводим сообщение об успешном сохранении
-                    System.out.println("Фото успешно сохранено по пути: " + photoFile.getAbsolutePath());
                 } catch (TelegramApiException | IOException e) {
                     e.printStackTrace();
                 }
@@ -814,8 +825,8 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
             BufferedImage overlappingImage = new BufferedImage(image1.getWidth(), image1.getHeight(), BufferedImage.TYPE_INT_ARGB);
 
             // Наложение второго изображения на первое
-            int newWidth = 300;
-            int newHeight = 300;
+            int newWidth = 321;
+            int newHeight = 345;
 
 // Создание BufferedImage для измененного размера
             BufferedImage resizedImage2 = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_ARGB);
@@ -828,7 +839,7 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
 // Наложение измененного второго изображения на первое
             Graphics2D g2d = overlappingImage.createGraphics();
             g2d.drawImage(image1, 0, 0, null);
-            g2d.drawImage(resizedImage2, 200, 200, null);
+            g2d.drawImage(resizedImage2, 456, 767, null);
             g2d.dispose();
 
             // Сохранение полученного изображения в файл
@@ -857,7 +868,24 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
             execute(sendPhoto);
         } catch (TelegramApiException e) {
             e.printStackTrace();
-        }}
+        }
+    }
+    public static int checkPhoto(String path, String photoName) {
+        File folder = new File(path);
+        File[] files = folder.listFiles();
+
+        if (files == null) {
+            return 0;
+        }
+
+        for (File file : files) {
+            if (file.isFile() && file.getName().equals(photoName)) {
+                return 1;
+            }
+        }
+
+        return 0;
+    }
 }
 
 
