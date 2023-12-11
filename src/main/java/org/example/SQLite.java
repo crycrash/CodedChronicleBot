@@ -175,16 +175,16 @@ public class SQLite {
 
         return months;
     }
-    public List<String> getDays(long chatId, String year1, String month1) {
+    public ArrayList<Integer> getDays(long chatId, String year1, String month1) {
         String selectSql = "SELECT DISTINCT day FROM reads WHERE id = ? AND year = ? AND month = ?";
-        List<String> days = new ArrayList<>();
+        ArrayList<Integer> days = new ArrayList<>();
         try (PreparedStatement preparedStatement = connection.prepareStatement(selectSql)) {
             preparedStatement.setLong(1, chatId);
             preparedStatement.setString(2, year1);
             preparedStatement.setString(3, month1);
             try (ResultSet resultSet = preparedStatement.executeQuery()) { // и для ResultSet тоже
                 while (resultSet.next()) {
-                    days.add(resultSet.getString("day"));
+                    days.add(Integer.valueOf(resultSet.getString("day")));
                 }
             }
         } catch (SQLException e) {

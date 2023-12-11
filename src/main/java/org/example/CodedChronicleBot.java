@@ -4,6 +4,7 @@ import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
 import org.telegram.telegrambots.meta.api.methods.GetFile;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
+import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.PhotoSize;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -89,34 +90,29 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
+        InlineKeyboards key;
+        key = new InlineKeyboards();
         if (mes(update)) {
             SQLite.makeTable();
             if (message_text.equals("/start") && session.getState().equals(BotState.START)) {
-                sendKeyboardMessage();
+                ReplyKeyboard sen = new ReplyKeyboard();
+                unsaveExecute(sen.sendKeyboard(chat_id));
                 session.setState(BotState.NOTWAITING);
             }
             if (message_text.equals("Создать заметку") && session.getState().equals(BotState.NOTWAITING)) {
-                try {
-                    execute(yesOrNo(chat_id));
-                } catch (TelegramApiException e) {
-                    throw new RuntimeException(e);
-                }
+                List<String> names = Arrays.asList("Да", "Нет");
+                List<String> codes = Arrays.asList("YES", "NO");
+                unsaveExecute(key.sendKeyboard(chat_id, names, codes, "Хотите за сегодня?"));
             } else if (message_text.equals("Поменять оформление") && session.getState().equals(BotState.NOTWAITING)) {
-                try {
-                    execute(variableOfTheme(chat_id));
-                } catch (TelegramApiException e) {
-                    throw new RuntimeException(e);
-                }
+                List<String> names = Arrays.asList("\uD83E\uDD0D", "❤", "\uD83D\uDC99");
+                List<String> codes = Arrays.asList("БЕЛОЕ", "КРАСНОЕ", "СИНЕЕ");
+                unsaveExecute(key.sendKeyboard(chat_id, names, codes, "Выберите цветовую гамму"));
             } else if (message_text.equals("Посмотреть заметку") && session.getState().equals(BotState.NOTWAITING)) {
                 f = 0;
                 List<String> years0;
                 years0 = hhf.getYears(chat_id);
                 if (!years0.isEmpty()){
-                    try {
-                        execute(sendYears(chat_id, years0));
-                    } catch (TelegramApiException e) {
-                        throw new RuntimeException(e);
-                    }
+                    unsaveExecute(key.sendKeyboard(chat_id, years0, years0, "Выберите год"));
                     session.setState(BotState.WAITING3);
                 }else{
                     sendText(chat_id, "У вас еще нет записей!");
@@ -126,28 +122,23 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
                 f = 1;
                 List<String> years0;
                 years0 = hhf.getYears(chat_id);
-                try {
-                    execute(sendYears(chat_id, years0));
-                } catch (TelegramApiException e) {
-                    throw new RuntimeException(e);
-                }
+                unsaveExecute(key.sendKeyboard(chat_id, years0, years0, "Выберите год"));
                 session.setState(BotState.WAITING3);
             }else if (message_text.equals("Удалить записи") && session.getState().equals(BotState.NOTWAITING)) {
-                try {
-                    execute(firstAsk(chat_id));
-                } catch (TelegramApiException e) {
-                    throw new RuntimeException(e);
-                }
+                List<String> names = Arrays.asList("Да", "Нет");
+                List<String> codes = Arrays.asList("900", "100");
+                unsaveExecute(key.sendKeyboard(chat_id, names, codes, "Вы уверены?"));
                 session.setState(BotState.WAITING2);
             } else if (session.getState().equals(BotState.WAITING1)) {
-                //sendText(chat_id,"запись за эту дату уже есть, выберете другую");
-                hhf.makeNote(chat_id, message_text, year, month, day);
-                try {
-                    execute(photo(chat_id));
-                } catch (TelegramApiException e) {
-                    throw new RuntimeException(e);
+                if (message_text.length() > 1130){
+                    sendText(chat_id, "Ваше сообщение слишком длинное! Ограничение по символам 1130. Попробуйте ввести снова...");
+                }else{
+                    hhf.makeNote(chat_id, message_text, year, month, day);
+                    List<String> names = Arrays.asList("Да", "Нет");
+                    List<String> codes = Arrays.asList("YESPHOTO", "NOPHOTO");
+                    unsaveExecute(key.sendKeyboard(chat_id, names, codes, "Хотите добавить фото к заметке?"));
+                    session.setState(BotState.NOTWAITING);
                 }
-                session.setState(BotState.NOTWAITING);
             } else if (session.getState().equals(BotState.WAITINGAFTERADD)) {
                 String note = hhf.getMessage(chat_id, year, month, day);
                 String newNote = note + "\r\n" + message_text;
@@ -178,6 +169,12 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
                 year = date.substring(0, 4);
                 month = date.substring(5, 7);
                 day = date.substring(8, 10);
+                if (day.charAt(0) == '0') {
+                    day=day.substring(1, 2);
+                }
+                if (month.charAt(0) == '0') {
+                    month=month.substring(1, 2);
+                }
                 if (hhf.check(chat_id, year, month, day)) {
                     sendText(chat_id, "запись за эту дату уже есть, выберете другую");
                     session.setState(BotState.NOTWAITING);
@@ -188,13 +185,11 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
             } else if (call_data.equals("NO1")) {
                 session.setState(BotState.NOTWAITING);
             } else if (call_data.equals("NO")) {
-                try {
-                    execute(sendConstantYears(chat_id));
-                } catch (TelegramApiException e) {
-                    throw new RuntimeException(e);
-                }
+                List<String> names = Arrays.asList("2023", "2022", "2021");
+                unsaveExecute(key.sendKeyboard(chat_id, names, names, "Года"));
                 session.setState(BotState.WAITING5);
             } else if (call_data.equals("NOPHOTO")) {
+                System.out.println("8888");
                 sendText(chat_id, "Текст успешно записан");
                 session.setState(BotState.NOTWAITING);
             } else if (call_data.equals("YESPHOTO")) {
@@ -203,41 +198,33 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
                 year = call_data;
                 List<String> months0;
                 months0 = hhf.getMonths(chat_id, year);
-                try {
-                    execute(sendMonths(chat_id, months0));
-                } catch (TelegramApiException e) {
-                    throw new RuntimeException(e);
-                }
+                unsaveExecute(key.sendKeyboard(chat_id, months0, months0, "Выберите месяц"));
                 session.setState(BotState.WAITING4);
             } else if (session.getState().equals(BotState.WAITING4)) {
                 month = call_data;
-                List<String> days0;
+                ArrayList<Integer> days0;
                 days0 = hhf.getDays(chat_id, year, month);
-                try {
-                    execute(sendDays(chat_id, days0));
-                } catch (TelegramApiException e) {
-                    throw new RuntimeException(e);
-                }
+                unsaveExecute(key.sendPreparedDays(chat_id, days0, "Выберите день"));
                 session.setState(BotState.WAITING_AFTER_DAY);
             } else if (session.getState().equals(BotState.WAITING_AFTER_DAY)) {
                 day = call_data;
                 if (f == 0) {
                     String s = hhf.getMessage(chat_id, year, month, day);
                     String date = day + "." + month + "." + year;
-                    String name = year + month + day + ".jpg";
+                    String name = chat_id + "." + year + month + day + ".jpg";
                     if(checkPhoto(getPath(),name)==1) {
-                        String photo=getPath()+"\\"+name;
+                        System.out.println("не зашел");
+                        String photo=getPath()+"/"+name;
                         sendOverlappingImage(createPhotoText(chat_id, s, date),photo);
                     }else{
+                        System.out.println("зашел");
                         sendPhotoText(chat_id, s, date);
                     }
                 }
                 if (f == 1) {
-                    try {
-                        execute(editing(chat_id));
-                    } catch (TelegramApiException e) {
-                        throw new RuntimeException(e);
-                    }
+                    List<String> names = Arrays.asList("Перезапись", "Добавление");
+                    List<String> codes = Arrays.asList("rewrite", "add");
+                    unsaveExecute(key.sendKeyboard(chat_id, names, codes, "Что хотите сделать с записью?"));
                 }
                 session.setState(BotState.NOTWAITING);
             } else if (message_text.equals("rewrite")) {
@@ -245,20 +232,12 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
                 session.setState(BotState.REWAITING);
             } else if (session.getState().equals(BotState.WAITING5)) {
                 year = call_data;
-                try {
-                    execute(sendConstantMonths(chat_id));
-                } catch (TelegramApiException e) {
-                    throw new RuntimeException(e);
-                }
+                unsaveExecute(key.sendConstantMonths(chat_id));
                 session.setState(BotState.WAITING6);
             } else if (session.getState().equals(BotState.WAITING6)) {
                 month = call_data;
                 ArrayList<Integer> daysInMonth = hhf.makeNoteNo(chat_id, year, month);
-                try {
-                    execute(sendPreparedDays(chat_id, daysInMonth));
-                } catch (TelegramApiException e) {
-                    throw new RuntimeException(e);
-                }
+                unsaveExecute(key.sendPreparedDays(chat_id, daysInMonth, "Выберите день"));
                 session.setState(BotState.WAITING7);
             } else if (session.getState().equals(BotState.WAITING7)) {
                 day = call_data;
@@ -272,11 +251,9 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
                 session.setState(BotState.WAITINGAFTERADD);
             } else if (session.getState().equals(BotState.WAITING2)) {
                 if (call_data.equals("900")){
-                    try {
-                        execute(secondAsk(chat_id));
-                    } catch (TelegramApiException e) {
-                        throw new RuntimeException(e);
-                    }
+                    List<String> names = Arrays.asList("Да", "Нет");
+                    List<String> codes = Arrays.asList("800", "200");
+                    unsaveExecute(key.sendKeyboard(chat_id, names, codes, "Вы точно уверены?"));
                     session.setState(BotState.WAITING8);
                 }if (call_data.equals("100")){
                     sendText(chat_id, "Ну и хорошо!");
@@ -285,6 +262,7 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
             }else if (session.getState().equals(BotState.WAITING8)) {
                 if (call_data.equals("800")){
                     hhf.deleteAll(chat_id);
+                    deletePhotos(chat_id, getPath());
                     sendText(chat_id, "Все ваши заметки удалены!");
                 }if (call_data.equals("200")){
                     sendText(chat_id, "Ну и хорошо!");
@@ -293,15 +271,23 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
             }
 
         } else if (update.getMessage().hasPhoto()) {
-            if (day.substring(0, 1)=="0") {
+            if (day.charAt(0) == '0') {
                 day=day.substring(1, 2);
             }
-            if (month.substring(0, 1)=="0") {
+            if (month.charAt(0) == '0') {
                 month=month.substring(1, 2);
             }
-            savePhotoToFile(update, day, month, year);
+            savePhotoToFile(update,chat_id, day, month, year);
             sendText(chat_id, "заметка записана");
             session.setState(BotState.NOTWAITING);
+        }
+    }
+
+    private void unsaveExecute(SendMessage sendMessage) {
+        try {
+            execute(sendMessage);
+        } catch (TelegramApiException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -314,373 +300,6 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
         } catch (TelegramApiException e) {
             throw new RuntimeException(e);      //Any error will be printed here
         }
-    }
-
-    public SendMessage sendPreparedDays(Long who, ArrayList<Integer> daysInMonth) {
-        SendMessage message = new SendMessage();
-        message.setChatId(String.valueOf(who));
-        message.setText("Выберите день");
-
-        InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
-
-        List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
-        List<InlineKeyboardButton> rowInLine1 = new ArrayList<>();
-        List<InlineKeyboardButton> rowInLine2 = new ArrayList<>();
-        List<InlineKeyboardButton> rowInLine3 = new ArrayList<>();
-        List<InlineKeyboardButton> rowInLine4 = new ArrayList<>();
-        List<InlineKeyboardButton> rowInLine5 = new ArrayList<>();
-        int count = 0;
-        for (int s : daysInMonth) {
-            if (s != 0) {
-                if (count <= 6) {
-                    InlineKeyboardButton button = new InlineKeyboardButton();
-                    button.setText(String.valueOf(s));
-                    button.setCallbackData(String.valueOf(s));
-                    rowInLine1.add(button);
-                } else if (count <= 12) {
-                    InlineKeyboardButton button = new InlineKeyboardButton();
-                    button.setText(String.valueOf(s));
-                    button.setCallbackData(String.valueOf(s));
-                    rowInLine2.add(button);
-                } else if (count <= 18) {
-                    InlineKeyboardButton button = new InlineKeyboardButton();
-                    button.setText(String.valueOf(s));
-                    button.setCallbackData(String.valueOf(s));
-                    rowInLine3.add(button);
-                } else if (count <= 24) {
-                    InlineKeyboardButton button = new InlineKeyboardButton();
-                    button.setText(String.valueOf(s));
-                    button.setCallbackData(String.valueOf(s));
-                    rowInLine4.add(button);
-                } else {
-                    InlineKeyboardButton button = new InlineKeyboardButton();
-                    button.setText(String.valueOf(s));
-                    button.setCallbackData(String.valueOf(s));
-                    rowInLine5.add(button);
-                }
-                count++;
-            }
-        }
-
-        rowsInLine.add(rowInLine1);
-        rowsInLine.add(rowInLine2);
-        rowsInLine.add(rowInLine3);
-        rowsInLine.add(rowInLine4);
-        rowsInLine.add(rowInLine5);
-        markupInLine.setKeyboard(rowsInLine);
-        message.setReplyMarkup(markupInLine);
-
-        return message;
-    }
-
-
-    public SendMessage variableOfTheme(Long who) {
-        SendMessage message = new SendMessage();
-        message.setChatId(String.valueOf(who));
-        message.setText("Выберите цветовую гамму");
-
-        InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
-
-        List<InlineKeyboardButton> rowsInLine = new ArrayList<>();
-
-        InlineKeyboardButton button1 = new InlineKeyboardButton();
-        button1.setText("\uD83E\uDD0D");
-        button1.setCallbackData("БЕЛОЕ");
-
-        InlineKeyboardButton button2 = new InlineKeyboardButton();
-        button2.setText("❤");
-        button2.setCallbackData("КРАСНОЕ");
-
-        InlineKeyboardButton button3 = new InlineKeyboardButton();
-        button3.setText("\uD83D\uDC99");
-        button3.setCallbackData("СИНЕЕ");
-
-        rowsInLine.add(button1);
-        rowsInLine.add(button2);
-        rowsInLine.add(button3);
-
-        markupInLine.setKeyboard(Collections.singletonList(rowsInLine));
-        message.setReplyMarkup(markupInLine);
-
-        return message;
-    }
-
-    public SendMessage firstAsk(Long who) {
-        SendMessage message = new SendMessage();
-        message.setChatId(String.valueOf(who));
-        message.setText("Вы уверены?");
-        InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
-        List<InlineKeyboardButton> rowsInLine = new ArrayList<>();
-        InlineKeyboardButton button1 = new InlineKeyboardButton();
-        button1.setText("Да");
-        button1.setCallbackData("900");
-        InlineKeyboardButton button2 = new InlineKeyboardButton();
-        button2.setText("Нет");
-        button2.setCallbackData("100");
-        rowsInLine.add(button1);
-        rowsInLine.add(button2);
-        markupInLine.setKeyboard(Collections.singletonList(rowsInLine));
-        message.setReplyMarkup(markupInLine);
-        return message;
-    }
-    public SendMessage secondAsk(Long who) {
-        SendMessage message = new SendMessage();
-        message.setChatId(String.valueOf(who));
-        message.setText("Вы точно уверены?");
-        InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
-        List<InlineKeyboardButton> rowsInLine = new ArrayList<>();
-        InlineKeyboardButton button1 = new InlineKeyboardButton();
-        button1.setText("Да");
-        button1.setCallbackData("800");
-        InlineKeyboardButton button2 = new InlineKeyboardButton();
-        button2.setText("Нет");
-        button2.setCallbackData("200");
-        rowsInLine.add(button1);
-        rowsInLine.add(button2);
-        markupInLine.setKeyboard(Collections.singletonList(rowsInLine));
-        message.setReplyMarkup(markupInLine);
-        return message;
-    }
-
-    public SendMessage yesOrNo(Long who) {
-        SendMessage message = new SendMessage();
-        message.setChatId(String.valueOf(who));
-        message.setText("Хотите за сегодня?");
-
-        InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
-
-        List<InlineKeyboardButton> rowsInLine = new ArrayList<>();
-
-        InlineKeyboardButton button1 = new InlineKeyboardButton();
-        button1.setText("Да");
-        button1.setCallbackData("YES");
-
-        InlineKeyboardButton button2 = new InlineKeyboardButton();
-        button2.setText("Нет");
-        button2.setCallbackData("NO");
-
-        rowsInLine.add(button1);
-        rowsInLine.add(button2);
-
-        markupInLine.setKeyboard(Collections.singletonList(rowsInLine));
-        message.setReplyMarkup(markupInLine);
-
-        return message;
-    }
-
-    public SendMessage photo(Long who) {
-        SendMessage message = new SendMessage();
-        message.setChatId(String.valueOf(who));
-        message.setText("Хотите добавить фото к заметке?");
-
-        InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
-
-        List<InlineKeyboardButton> rowsInLine = new ArrayList<>();
-
-        InlineKeyboardButton button1 = new InlineKeyboardButton();
-        button1.setText("Да");
-        button1.setCallbackData("YESPHOTO");
-
-        InlineKeyboardButton button2 = new InlineKeyboardButton();
-        button2.setText("Нет");
-        button2.setCallbackData("NOPHOTO");
-
-        rowsInLine.add(button1);
-        rowsInLine.add(button2);
-
-        markupInLine.setKeyboard(Collections.singletonList(rowsInLine));
-        message.setReplyMarkup(markupInLine);
-
-        return message;
-    }
-
-    public SendMessage editing(Long who) {
-        SendMessage message = new SendMessage();
-        message.setChatId(String.valueOf(who));
-        message.setText("Что хотите сделать с записью?");
-
-        InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
-
-        List<InlineKeyboardButton> rowsInLine = new ArrayList<>();
-
-        InlineKeyboardButton button1 = new InlineKeyboardButton();
-        button1.setText("перезаписать");
-        button1.setCallbackData("rewrite");
-
-        InlineKeyboardButton button2 = new InlineKeyboardButton();
-        button2.setText("добавить");
-        button2.setCallbackData("add");
-
-        rowsInLine.add(button1);
-        rowsInLine.add(button2);
-
-        markupInLine.setKeyboard(Collections.singletonList(rowsInLine));
-        message.setReplyMarkup(markupInLine);
-
-        return message;
-    }
-
-    public SendMessage sendYears(Long who, List<String> years) {
-        SendMessage message = new SendMessage();
-        message.setChatId(String.valueOf(who));
-        message.setText("Выберите год");
-
-        InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
-        List<InlineKeyboardButton> rowsInLine = new ArrayList<>();
-        for (String s : years) {
-            InlineKeyboardButton button = new InlineKeyboardButton();
-            button.setText(s);
-            button.setCallbackData(s);
-            rowsInLine.add(button);
-        }
-        markupInLine.setKeyboard(Collections.singletonList(rowsInLine));
-        message.setReplyMarkup(markupInLine);
-        return message;
-    }
-
-    public SendMessage sendMonths(Long who, List<String> months) {
-        SendMessage message = new SendMessage();
-        message.setChatId(String.valueOf(who));
-        message.setText("Выберите месяц");
-
-        InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
-        List<InlineKeyboardButton> rowsInLine = new ArrayList<>();
-        for (String s : months) {
-            InlineKeyboardButton button = new InlineKeyboardButton();
-            button.setText(s);
-            button.setCallbackData(s);
-            rowsInLine.add(button);
-        }
-        markupInLine.setKeyboard(Collections.singletonList(rowsInLine));
-        message.setReplyMarkup(markupInLine);
-
-        return message;
-    }
-
-    public SendMessage sendDays(Long who, List<String> days) {
-        SendMessage message = new SendMessage();
-        message.setChatId(String.valueOf(who));
-        message.setText("Выберите день");
-
-        InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
-
-        List<InlineKeyboardButton> rowsInLine = new ArrayList<>();
-        for (String s : days) {
-
-            InlineKeyboardButton button = new InlineKeyboardButton();
-            button.setText(s);
-            button.setCallbackData(s);
-            rowsInLine.add(button);
-        }
-
-        markupInLine.setKeyboard(Collections.singletonList(rowsInLine));
-        message.setReplyMarkup(markupInLine);
-
-        return message;
-    }
-
-    public void sendKeyboardMessage() {
-        SendMessage sm = new SendMessage();
-        sm.setChatId(String.valueOf(chat_id));
-        ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
-
-        KeyboardRow row1 = new KeyboardRow();
-        KeyboardRow row2 = new KeyboardRow();
-        KeyboardRow row3 = new KeyboardRow();
-        KeyboardRow row4 = new KeyboardRow();
-        KeyboardRow row5 = new KeyboardRow();
-
-        KeyboardButton button1 = new KeyboardButton("Создать заметку");
-        KeyboardButton button2 = new KeyboardButton("Посмотреть заметку");
-        KeyboardButton button3 = new KeyboardButton("Поменять оформление");
-        KeyboardButton button4 = new KeyboardButton("Редактировать запись");
-        KeyboardButton button5 = new KeyboardButton("Удалить записи");
-
-        row1.add(button1);
-        row2.add(button2);
-        row3.add(button3);
-        row4.add(button4);
-        row5.add(button5);
-
-        List<KeyboardRow> keyboardRows = new ArrayList<>();
-        keyboardRows.add(row1);
-        keyboardRows.add(row2);
-        keyboardRows.add(row3);
-        keyboardRows.add(row4);
-        keyboardRows.add(row5);
-
-        keyboard.setKeyboard(keyboardRows);
-
-        sm.setText("Добро пожаловать в свой личный дневник!");
-
-        sm.setReplyMarkup(keyboard);
-
-        try {
-            execute(sm);
-        } catch (TelegramApiException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public SendMessage sendConstantYears(Long who) {
-        SendMessage message = new SendMessage();
-        message.setChatId(String.valueOf(who));
-        message.setText("Года");
-
-        InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
-
-        List<InlineKeyboardButton> rowsInLine = new ArrayList<>();
-
-        InlineKeyboardButton button1 = new InlineKeyboardButton();
-        button1.setText("2023");
-        button1.setCallbackData("2023");
-
-        InlineKeyboardButton button2 = new InlineKeyboardButton();
-        button2.setText("2022");
-        button2.setCallbackData("2022");
-
-        InlineKeyboardButton button3 = new InlineKeyboardButton();
-        button3.setText("2021");
-        button3.setCallbackData("2021");
-
-        rowsInLine.add(button1);
-        rowsInLine.add(button2);
-        rowsInLine.add(button3);
-
-        markupInLine.setKeyboard(Collections.singletonList(rowsInLine));
-        message.setReplyMarkup(markupInLine);
-
-        return message;
-    }
-
-    public SendMessage sendConstantMonths(Long who) {
-        SendMessage message = new SendMessage();
-        message.setChatId(String.valueOf(who));
-        message.setText("Месяца");
-
-        InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
-
-        List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
-        List<InlineKeyboardButton> rowInLine1 = new ArrayList<>();
-        for (int i = 1; i <= 6; i++) {
-            InlineKeyboardButton button = new InlineKeyboardButton();
-            button.setText(String.valueOf(i));
-            button.setCallbackData(String.valueOf(i));
-            rowInLine1.add(button);
-        }
-        List<InlineKeyboardButton> rowInLine2 = new ArrayList<>();
-        for (int i = 7; i <= 12; i++) {
-            InlineKeyboardButton button = new InlineKeyboardButton();
-            button.setText(String.valueOf(i));
-            button.setCallbackData(String.valueOf(i));
-            rowInLine2.add(button);
-        }
-        rowsInLine.add(rowInLine1);
-        rowsInLine.add(rowInLine2);
-        markupInLine.setKeyboard(rowsInLine);
-        message.setReplyMarkup(markupInLine);
-
-        return message;
     }
 
     private void sendImageWhite() {
@@ -705,15 +324,30 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
 
             int maxWidth = 40; // Максимальная длина строки
             float lineHeight = 31.999982f; // Высота текста
-
+            int maxWidth1 = 22;
             List<String> lines = wrapText(text, maxWidth); // Разделение текста на строки
 
             int y = 149; // Начальная позиция по оси Y
+            int count = 0;
+            boolean flag = false;
             for (String line : lines) {
-                g2d.drawString(line, 15, y); // Отображение строки
-                y += lineHeight; // Увеличение позиции по оси Y для следующей строки
+                if (count < 800) {
+                    g2d.drawString(line, 15, y); // Отображение строки
+                    y += lineHeight; // Увеличение позиции по оси Y для следующей строки
+                }else{
+                    flag = true;
+                }
+                count += line.length();
+                System.out.println(count);
             }
-
+            if (flag){
+                text = text.substring(801);
+                List<String> lines2 = wrapText(text, maxWidth1); // Разделение текста на строки
+                for (String line : lines2) {
+                    g2d.drawString(line, 15, y); // Отображение строки
+                    y += lineHeight; // Увеличение позиции по оси Y для следующей строки
+                }
+            }
             g2d.dispose();
 
             File outputImage = new File("src/main/resources/output_" + originalImage.getName());
@@ -750,12 +384,10 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
     private List<String> wrapText(String text, int maxLength) {
         List<String> lines = new ArrayList<>();
         int length = text.length();
-
         for (int i = 0; i < length; i += maxLength) {
             int endIndex = Math.min(i + maxLength, length);
             lines.add(text.substring(i, endIndex));
         }
-
         return lines;
     }
 
@@ -766,10 +398,8 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
         return processedImage1;
     }
 
-
-    private void savePhotoToFile(Update update, String day, String month, String year) {
+    private void savePhotoToFile(Update update, long chat_id, String day, String month, String year) {
         if (update.hasMessage() && update.getMessage().hasPhoto()) {
-            // Получаем фото из сообщения пользователя
             PhotoSize photo = update.getMessage().getPhoto().stream()
                     .sorted((ps1, ps2) -> Integer.compare(ps2.getFileSize(), ps1.getFileSize()))
                     .findFirst()
@@ -785,7 +415,7 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
                     InputStream inputStream = new URL(fileURL).openStream();
                     // Создаем файл для сохранения фото в указанной папке
                     String savePath = getPath();
-                    String name = year + month + day; // Пример значения переменной name
+                    String name = chat_id + "." + year + month + day; // Пример значения переменной name
                     //String filePath = "/path/to/file"; // Пример значения переменной filePath
                     String fileName = name + filePath.substring(filePath.lastIndexOf('.'));
                     File photoFile = new File(savePath, fileName);
@@ -810,39 +440,31 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
         }
     }
 
-    // Метод для получения пути к файлу по его ID
     private String getFilePath(String fileId) throws TelegramApiException {
         GetFile getFileRequest = new GetFile(fileId);
         return execute(getFileRequest).getFilePath();
     }
     private void sendOverlappingImage(File file1, String path2) {
         try {
-            // Загрузка изображений
             BufferedImage image1 = ImageIO.read(file1);
             BufferedImage image2 = ImageIO.read(new File(path2));
 
-            // Создание нового изображения с размерами первого изображения
             BufferedImage overlappingImage = new BufferedImage(image1.getWidth(), image1.getHeight(), BufferedImage.TYPE_INT_ARGB);
 
-            // Наложение второго изображения на первое
             int newWidth = 321;
             int newHeight = 345;
 
-// Создание BufferedImage для измененного размера
             BufferedImage resizedImage2 = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_ARGB);
 
-// Наложение второго изображения на измененный BufferedImage
             Graphics2D g2dResized = resizedImage2.createGraphics();
             g2dResized.drawImage(image2, 0, 0, newWidth, newHeight, null);
             g2dResized.dispose();
 
-// Наложение измененного второго изображения на первое
             Graphics2D g2d = overlappingImage.createGraphics();
             g2d.drawImage(image1, 0, 0, null);
             g2d.drawImage(resizedImage2, 456, 767, null);
             g2d.dispose();
 
-            // Сохранение полученного изображения в файл
             File outputImage = new File("output.png");
             ImageIO.write(overlappingImage, "png", outputImage);
 
@@ -883,9 +505,15 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
                 return 1;
             }
         }
-
         return 0;
     }
+    private void deletePhotos(long chat_id, String path){
+        File folder = new File(path);
+        File[] files = folder.listFiles();
+        for (File file : files) {
+            if (file.isFile() && file.getName().startsWith(String.valueOf(chat_id))) {
+                file.delete();
+            }
+        }
+    }
 }
-
-
