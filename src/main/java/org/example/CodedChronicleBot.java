@@ -136,7 +136,7 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
             processMessage(update, userSession, chat_id);
         } else if (update.getMessage().hasPhoto()) {
             BotSession userSession = userSessions.computeIfAbsent(chat_id, k -> new BotSession());
-            MainKeyboard.photo(userSession, chat_id, year, month, day, update);
+            MainKeyboard.photo(userSession, chat_id, parametrs, update);
         }
     }
 
@@ -156,11 +156,11 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
         } else if ("Удалить записи".equals(messageText)) {
             MainKeyboard.handleDeleteNotesCommand(userSession, chat_id);
         } else if (userSession.getState().equals(BotState.WAITING1)) {
-            StatesMetods.waiting1(userSession, chat_id, message_text, year, month, day);
+            StatesMetods.waiting1(userSession, chat_id, message_text, parametrs);
         } else if (userSession.getState().equals(BotState.WAITINGAFTERADD)) {
-            StatesMetods.waitingafteradd(userSession, chat_id, message_text, year, month, day);
+            StatesMetods.waitingafteradd(userSession, chat_id, message_text, parametrs);
         } else if (userSession.getState().equals(BotState.REWAITING)) {
-            StatesMetods.rewaiting(userSession, chat_id, message_text, year, month, day);
+            StatesMetods.rewaiting(userSession, chat_id, message_text,parametrs);
         }
     }
 
@@ -195,15 +195,15 @@ public class CodedChronicleBot extends TelegramLongPollingBot {
         } else if (userSession.getState().equals(BotState.WAITING_AFTER_DAY)) {
             StatesMetods.waitingDAY(userSession, chat_id, message_text, parametrs, buttonData, f);
         } else if (userSession.getState().equals(BotState.WAITING5)) {
-            //StatesMetods.waitingToSendYear(userSession, chat_id, message_text, year, month, day, buttonData);
+            parametrs.year=StatesMetods.waitingToSendYear(userSession, chat_id, message_text, parametrs, buttonData);
         } else if (userSession.getState().equals(BotState.WAITING6)) {
-            //StatesMetods.waitingToSendMonth(userSession, chat_id, message_text, year, month, day, buttonData);
+            parametrs.month=StatesMetods.waitingToSendMonth(userSession, chat_id, message_text, parametrs, buttonData,getInstance().year);
         } else if (userSession.getState().equals(BotState.WAITING7)) {
-            //StatesMetods.waitingToSendDay(userSession, chat_id, message_text, year, month, day, buttonData);
+            StatesMetods.waitingToSendDay(userSession, chat_id, message_text, parametrs, buttonData,getInstance().year,getInstance().month);
         } else if (userSession.getState().equals(BotState.WAITING2)) {
-           // StatesMetods.delite1(userSession, chat_id, message_text, year, month, day, buttonData);
+            StatesMetods.delite1(userSession, chat_id, message_text, parametrs, buttonData);
         } else if (userSession.getState().equals(BotState.WAITING8)) {
-           // StatesMetods.delite2(userSession, chat_id, message_text, year, month, day, buttonData);
+            StatesMetods.delite2(userSession, chat_id, message_text, parametrs, buttonData);
         }
     }
 

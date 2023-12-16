@@ -88,15 +88,15 @@ public class MainKeyboard {
             userSession.setState(BotState.WAITING2);
         }
     }
-    static void photo(BotSession userSession, long chat_id,String year, String month, String day, Update update) {
+    static void photo(BotSession userSession, long chat_id,Parametrs parametrs, Update update) {
         System.out.println("внутри фото");
-        if (day.charAt(0) == '0') {
-            day = day.substring(1, 2);
+        if (parametrs.day.charAt(0) == '0') {
+            parametrs.day = parametrs.day.substring(1, 2);
         }
-        if (month.charAt(0) == '0') {
-            month = month.substring(1, 2);
+        if (parametrs.month.charAt(0) == '0') {
+            parametrs.month = parametrs.month.substring(1, 2);
         }
-        savePhotoToFile(update, chat_id, day, month, year);
+        savePhotoToFile(update, chat_id, parametrs.day, parametrs.month, parametrs.year);
         new CodedChronicleBot().sendText(chat_id, "заметка записана");
         userSession.setState(BotState.NOTWAITING);
     }
