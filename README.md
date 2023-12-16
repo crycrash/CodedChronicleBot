@@ -1,2 +1,2 @@
-Bot for keeping a personal diary
-tg: https://t.me/CodedChronicleBot
+Bot for keeping a personal diary   
+  tg: https://t.me/CodedChronicleBot
