@@ -3,14 +3,28 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import java.sql.DriverManager;
+import java.sql.Connection;
+
 public class SQLite {
 
-    public Connection connection;
+    public static Connection connection;
+    private static SQLite instance;
+
 
     public SQLite() throws SQLException {
         connection = DriverManager.getConnection("jdbc:sqlite:test.db");
     }
+    public static synchronized SQLite getInstance() throws SQLException {
+        if (instance == null) {
+            instance = new SQLite();
+        }
+        return instance;
+    }
 
+    public Connection getConnection() {
+        return connection;
+    }
     public static void main(String[] args) {
     }
 
@@ -30,7 +44,7 @@ public class SQLite {
             e.printStackTrace();
         }
     }
-    public boolean check(long chat_id, String year, String month, String day) {
+    public static boolean check(long chat_id, String year, String month, String day) {
         // Проверяем, есть ли уже такая запись
         String checkSql = "SELECT COUNT(*) FROM reads WHERE id = ? AND year = ? AND month = ? AND day = ?";
 
@@ -54,7 +68,7 @@ public class SQLite {
         // Если метод не вернул значение раньше, значит произошла ошибка
         return false;
     }
-    public void makeNote(long chat_id, String text, String year, String month, String day) {
+    public static void makeNote(long chat_id, String text, String year, String month, String day) {
 
         String insertSql = "INSERT INTO reads (id, message, year, month, day) VALUES (?, ?, ?, ?, ?)";
         try (PreparedStatement preparedStatementInsert = connection.prepareStatement(insertSql)) {
@@ -81,7 +95,7 @@ public class SQLite {
             e.printStackTrace();
         }
     }
-    public ArrayList<Integer> makeNoteNo(long chat_id, String year, String month){
+    public static ArrayList<Integer> makeNoteNo(long chat_id, String year, String month){
         Calendar cal = new Calendar();
         String selectSql = "SELECT day, month FROM reads WHERE id = ? AND year = ? AND month = ?";
         try
@@ -103,7 +117,7 @@ public class SQLite {
         }
         return null;
     }
-    public String getMessage(long chat_id,String year, String month, String day) {
+    public static String getMessage(long chat_id, String year, String month, String day) {
         String selectSql = "SELECT message FROM reads WHERE id = ? AND year = ? AND month = ? AND day = ?";
         try
                 (PreparedStatement preparedStatement = connection.prepareStatement(selectSql)){
@@ -123,7 +137,7 @@ public class SQLite {
         }
         return null;
     }
-    public void rewrite(long chat_id, String text, String year, String month, String day) {
+    public static void rewrite(long chat_id, String text, String year, String month, String day) {
         String sql = "UPDATE reads SET message = ? WHERE id = ? AND year = ? AND month = ? AND day = ?";
 
         try
@@ -141,7 +155,7 @@ public class SQLite {
             System.out.println(e.getMessage());
         }
     }
-    public List<String> getYears(long chatId) {
+    public static List<String> getYears(long chatId) {
         String selectSql = "SELECT DISTINCT year FROM reads WHERE id = ?";
         List<String> years = new ArrayList<>();
         try (PreparedStatement preparedStatement = connection.prepareStatement(selectSql)) {
@@ -156,7 +170,7 @@ public class SQLite {
         }
         return years;
     }
-    public List<String> getMonths(long chatId, String year1) {
+    public static List<String> getMonths(long chatId, String year1) {
         String selectSql = "SELECT DISTINCT month FROM reads WHERE id = ? AND year = ?";
         List<String> months = new ArrayList<>();
 
@@ -175,7 +189,7 @@ public class SQLite {
 
         return months;
     }
-    public ArrayList<Integer> getDays(long chatId, String year1, String month1) {
+    public static ArrayList<Integer> getDays(long chatId, String year1, String month1) {
         String selectSql = "SELECT DISTINCT day FROM reads WHERE id = ? AND year = ? AND month = ?";
         ArrayList<Integer> days = new ArrayList<>();
         try (PreparedStatement preparedStatement = connection.prepareStatement(selectSql)) {
@@ -192,7 +206,7 @@ public class SQLite {
         }
         return days;
     }
-    public void deleteAll(long chatId){
+    public static void deleteAll(long chatId){
         String deleteSql = "DELETE FROM reads WHERE id = ?";
         try (PreparedStatement preparedStatement = connection.prepareStatement(deleteSql)) {
             preparedStatement.setLong(1, chatId);
