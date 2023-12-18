@@ -1,6 +1,5 @@
 package org.example;
-import java.sql.Connection;
-import java.sql.SQLException;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -9,17 +8,7 @@ public class StatesMetods {
     public static void main(String[] args) {
     }
 
-    private Connection hff;
-
-    public StatesMetods() {
-        try {
-            this.hff = SQLite.getInstance().getConnection();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private static InlineKeyboards key = new InlineKeyboards();
+    private static final InlineKeyboards key = new InlineKeyboards();
 
 
     static void waiting1(BotSession userSession, long chat_id, String message_text, Parametrs parametrs) {
@@ -50,11 +39,8 @@ public class StatesMetods {
         userSession.setState(BotState.NOTWAITING);
     }
 
-    static String waitingYEAR(BotSession userSession, long chat_id, String message_text, Parametrs parametrs, String buttonData, int f) {
+    static String waitingYEAR(BotSession userSession, long chat_id, Parametrs parametrs, String buttonData) {
         parametrs.year = buttonData;
-        System.out.println(parametrs.year);
-        System.out.println(parametrs.month);
-        System.out.println(parametrs.day);
         List<String> months0;
         months0 = SQLite.getMonths(chat_id, parametrs.year);
         CodedChronicleBot.getInstance().unsaveExecute(key.sendKeyboard(chat_id, months0, months0, "Выберите месяц"));
@@ -62,7 +48,7 @@ public class StatesMetods {
         return parametrs.year;
     }
 
-    static void waitingMONTH(BotSession userSession, long chat_id, String message_text, Parametrs parametrs, String buttonData, int f,String year) {
+    static void waitingMONTH(BotSession userSession, long chat_id, Parametrs parametrs, String buttonData) {
         parametrs.month = buttonData;
         System.out.println(parametrs.year);
         System.out.println(parametrs.month);
@@ -76,23 +62,20 @@ public class StatesMetods {
         userSession.setState(BotState.WAITING_AFTER_DAY);
     }
 
-    static void waitingDAY(BotSession userSession, long chat_id, String message_text, Parametrs parametrs, String buttonData,int f) {
+    static void waitingDAY(BotSession userSession, long chat_id, Parametrs parametrs, String buttonData,int f) {
         parametrs.day = buttonData;
-        System.out.println(parametrs.year);
-        System.out.println(parametrs.month);
-        System.out.println(parametrs.day);
         if (f == 0) {
-
             String s = SQLite.getMessage(chat_id, parametrs.year, parametrs.month, parametrs.day);
             String date = parametrs.day + "." + parametrs.month + "." + parametrs.year;
             String name = chat_id + "." + parametrs.year + parametrs.month + parametrs.day + ".jpg";
-            if (CodedChronicleBot.checkPhoto(CodedChronicleBot.getPath(), name) == 1) {
+            if (SendPhotos.checkPhoto(CodedChronicleBot.getPath(), name) == 1) {
                 System.out.println("не зашел");
                 String photo = CodedChronicleBot.getPath() + "/" + name;
-                new CodedChronicleBot().sendOverlappingImage(CodedChronicleBot.createPhotoText(chat_id, s, date), photo);
+                System.out.println(photo);
+                new SendPhotos().sendOverlappingImage(SendPhotos.createPhotoText(s, date), photo, chat_id);
             } else {
                 System.out.println("зашел");
-                new CodedChronicleBot().sendPhotoText(chat_id, s, date);
+                new SendPhotos().sendPhotoText(chat_id, s, date);
             }
         }
         if (f == 1) {
@@ -103,28 +86,29 @@ public class StatesMetods {
         userSession.setState(BotState.NOTWAITING);
     }
 
-    static String waitingToSendYear(BotSession userSession, long chat_id, String message_text, Parametrs parametrs, String buttonData) {
+    static String waitingToSendYear(BotSession userSession, long chat_id, Parametrs parametrs, String buttonData) {
         parametrs.year = buttonData;
         new CodedChronicleBot().unsaveExecute(key.sendConstantMonths(chat_id));
         userSession.setState(BotState.WAITING6);
         return parametrs.year;
     }
 
-    static String waitingToSendMonth(BotSession userSession, long chat_id, String message_text,  Parametrs parametrs, String buttonData,String year) {
+    static String waitingToSendMonth(BotSession userSession, long chat_id, Parametrs parametrs, String buttonData) {
         parametrs.month = buttonData;
         ArrayList<Integer> daysInMonth = SQLite.makeNoteNo(chat_id, parametrs.year, parametrs.month);
+        assert daysInMonth != null;
         new CodedChronicleBot().unsaveExecute(key.sendPreparedDays(chat_id, daysInMonth, "Выберите день"));
         userSession.setState(BotState.WAITING7);
         return parametrs.month;
     }
 
-    static void waitingToSendDay(BotSession userSession, long chat_id, String message_text,Parametrs parametrs , String buttonData,String year,String month) {
+    static void waitingToSendDay(BotSession userSession, long chat_id, Parametrs parametrs , String buttonData) {
         parametrs.day = buttonData;
         new CodedChronicleBot().sendText(chat_id, "Введите текст");
         userSession.setState(BotState.WAITING1);
     }
 
-    static void delite1(BotSession userSession, long chat_id, String message_text, Parametrs parametrs, String buttonData) {
+    static void delite1(BotSession userSession, long chat_id, String buttonData) {
         if (buttonData.equals("900")) {
             List<String> names = Arrays.asList("Да", "Нет");
             List<String> codes = Arrays.asList("800", "200");
@@ -136,10 +120,10 @@ public class StatesMetods {
             userSession.setState(BotState.NOTWAITING);
         }
     }
-    static void delite2(BotSession userSession, long chat_id, String message_text, Parametrs parametrs, String buttonData) {
+    static void delite2(BotSession userSession, long chat_id, String buttonData) {
         if (buttonData.equals("800")) {
             SQLite.deleteAll(chat_id);
-            CodedChronicleBot.deletePhotos(chat_id, CodedChronicleBot.getPath());
+            SendPhotos.deletePhotos(chat_id, CodedChronicleBot.getPath());
             new CodedChronicleBot().sendText(chat_id, "Все ваши заметки удалены!");
         }
         if (buttonData.equals("200")) {

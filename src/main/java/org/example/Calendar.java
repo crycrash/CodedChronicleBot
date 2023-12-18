@@ -1,7 +1,6 @@
 package org.example;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class Calendar {
@@ -9,7 +8,7 @@ public class Calendar {
     public Calendar(){
         for (int m = 1; m <= 12; m++) {
             ArrayList<Integer> daysInMonth = new ArrayList<>();
-            int daysCount = 0;
+            int daysCount;
             if ((m == 1) || (m == 3) || (m == 5) || (m == 7) || (m == 8) || (m == 10) || (m == 12))
                 daysCount = 31;
             else if ((m == 4) || (m == 6) || (m == 9) || (m == 11))

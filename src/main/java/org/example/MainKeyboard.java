@@ -7,18 +7,14 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.example.CodedChronicleBot.savePhotoToFile;
-
 public class MainKeyboard {
     public static void main(String[] args) {
     }
-    private static InlineKeyboards key = new InlineKeyboards();
-
-    private Connection hff;
+    private static final InlineKeyboards key = new InlineKeyboards();
 
     public MainKeyboard() {
         try {
-            this.hff = SQLite.getInstance().getConnection();
+            Connection hff = SQLite.getInstance().getConnection();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -37,8 +33,6 @@ public class MainKeyboard {
             List<String> names = Arrays.asList("Да", "Нет");
             List<String> codes = Arrays.asList("YES", "NO");
             new CodedChronicleBot().unsaveExecute(key.sendKeyboard(chatId, names, codes, "Хотите за сегодня?"));
-            System.out.println("11111111");
-
         }
     }
 
@@ -96,7 +90,7 @@ public class MainKeyboard {
         if (parametrs.month.charAt(0) == '0') {
             parametrs.month = parametrs.month.substring(1, 2);
         }
-        savePhotoToFile(update, chat_id, parametrs.day, parametrs.month, parametrs.year);
+        SendPhotos.savePhotoToFile(update, chat_id, parametrs.day, parametrs.month, parametrs.year);
         new CodedChronicleBot().sendText(chat_id, "заметка записана");
         userSession.setState(BotState.NOTWAITING);
     }

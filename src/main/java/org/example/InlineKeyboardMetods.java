@@ -25,40 +25,45 @@ public class InlineKeyboardMetods {
     private static InlineKeyboards key = new InlineKeyboards();
 
     static void greenHeart(BotSession userSession, long chat_id) {
-        new CodedChronicleBot().sendImageWhite();
+        new SendPhotos().sendImageWhite();
         new CodedChronicleBot().sendText(chat_id, "Выбрана зеленая тема!");
     }
 
     static void redHeart(BotSession userSession, long chat_id) {
-        new CodedChronicleBot().sendImageRad();
-        ;
+        new SendPhotos().sendImageRad();
         new CodedChronicleBot().sendText(chat_id, "Выбрана красная тема!");
     }
 
     static void blueHeart(BotSession userSession, long chat_id) {
-        new CodedChronicleBot().sendImageBlue();
+        new SendPhotos().sendImageBlue();
         new CodedChronicleBot().sendText(chat_id, "Выбрана синяя тема!");
     }
 
-    static void noteForToday(BotSession userSession, long chat_id, String year, String month, String day, String message_text) {
+    static Parametrs noteForToday(BotSession userSession, long chat_id, Parametrs par) {
         LocalDate dat = LocalDate.now();
         String date = dat.toString();
-        year = date.substring(0, 4);
-        month = date.substring(5, 7);
-        day = date.substring(8, 10);
-        if (day.charAt(0) == '0') {
-            day = day.substring(1, 2);
+        String year1 = date.substring(0, 4);
+        String month1 = date.substring(5, 7);
+        String day1 = date.substring(8, 10);
+        par.year = year1;
+        par.month = month1;
+        par.day = day1;
+        if (day1.charAt(0) == '0') {
+            day1 = day1.substring(1, 2);
+            par.day = day1;
         }
-        if (month.charAt(0) == '0') {
-            month = month.substring(1, 2);
+        if (month1.charAt(0) == '0') {
+            month1 = month1.substring(1, 2);
+            par.month = month1;
         }
-        if (SQLite.check(chat_id, year, month, day)) {
+        if (SQLite.check(chat_id, year1, month1, day1)) {
             new CodedChronicleBot().sendText(chat_id, "запись за эту дату уже есть, выберете другую");
             userSession.setState(BotState.NOTWAITING);
         } else {
             new CodedChronicleBot().sendText(chat_id, "Введите текст");
             userSession.setState(BotState.WAITING1);
         }
+        return par;
     }
 
     static void notTodayNote(BotSession userSession, long chat_id) {
